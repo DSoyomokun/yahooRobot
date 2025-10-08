@@ -1,0 +1,23 @@
+{
+  "name": "Campus Delivery Map",
+  "version": "1.0",
+  "grid": {
+    "cell_size_cm": 30,
+    "origin": [0, 0]
+  },
+  "waypoints": {
+    "start": {"x": 0, "y": 0, "label": "Home Base"},
+    "station_a": {"x": 100, "y": 0, "label": "Station A"},
+    "station_b": {"x": 100, "y": 100, "label": "Station B"},
+    "station_c": {"x": 0, "y": 100, "label": "Station C"}
+  },
+  "obstacles": [
+    {"x": 50, "y": 50, "radius": 20, "type": "static"}
+  ],
+  "delivery_zones": [
+    {"name": "Zone 1", "x": 100, "y": 0, "radius": 30},
+    {"name": "Zone 2", "x": 100, "y": 100, "radius": 30},
+    {"name": "Zone 3", "x": 0, "y": 100, "radius": 30}
+  ]
+}
+
