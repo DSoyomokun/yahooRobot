@@ -1,0 +1,31 @@
+# Development requirements (Windows/Mac/Linux)
+# Use this for development on non-Raspberry Pi systems
+
+# Web Interface
+Flask>=2.3.0
+Flask-SocketIO>=5.3.0
+
+# Computer Vision (optional - uncomment if using cameras)
+# opencv-python>=4.8.0
+
+# Sensor Libraries (mock versions for development)
+# smbus2>=0.4.2  # Only works on Linux with I2C
+
+# Navigation & Math
+numpy>=1.24.0
+
+# Configuration & Data
+PyYAML>=6.0
+
+# Utilities
+python-dotenv>=1.0.0
+
+# Testing & Development
+pytest>=7.4.0
+pytest-cov>=4.1.0
+black>=23.0.0
+pylint>=2.17.0
+
+# Note: RPi.GPIO and gopigo3 are Raspberry Pi specific
+# The code uses simulation mode when these are not available
+

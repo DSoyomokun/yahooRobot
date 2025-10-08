@@ -29,6 +29,10 @@ venv/
 env/
 ENV/
 .venv
+Scripts/
+Lib/
+Include/
+pyvenv.cfg
 
 # IDEs
 .vscode/
