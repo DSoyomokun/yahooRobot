@@ -1,0 +1,1449 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Classroom Paper Robot Simulator</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            background-color: #f0f0f0;
+            display: flex;
+            min-height: 100vh;
+            margin: 0;
+            padding: 0;
+        }
+
+        .main-container {
+            display: flex;
+            width: 100%;
+            height: 100vh;
+        }
+
+        .classroom-area {
+            flex: 1;
+            min-width: 600px;
+            padding: 10px;
+            background-color: #ffffff;
+            overflow: auto;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .controls-panel {
+            width: 300px;
+            min-width: 250px;
+            background-color: #2c3e50;
+            color: white;
+            padding: 15px;
+            overflow-y: auto;
+            max-height: 100vh;
+        }
+
+        :root {
+            --cell-size: 16px;
+            --grid-width: 72;
+            --grid-height: 48;
+        }
+
+        .classroom-grid {
+            position: relative;
+            display: grid;
+            grid-template-columns: repeat(var(--grid-width), var(--cell-size));
+            grid-template-rows: repeat(var(--grid-height), var(--cell-size));
+            gap: 1px;
+            background-color: #b5b5b5;
+            padding: 10px;
+            border: 2px solid #34495e;
+            border-radius: 8px;
+            margin: 0 auto;
+            max-width: fit-content;
+            max-height: 90vh;
+            overflow: auto;
+        }
+
+        .cell {
+            width: var(--cell-size);
+            height: var(--cell-size);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: calc(var(--cell-size) * 0.25);
+            font-weight: bold;
+            cursor: pointer;
+            position: relative;
+            transition: all 0.2s ease;
+        }
+
+        .cell:hover {
+            transform: scale(1.1);
+            z-index: 10;
+        }
+
+        .cell.floor {
+            background-color: #f8f8f8;
+        }
+
+        .cell.desk {
+            background-color: #d9c690;
+            color: #333;
+        }
+
+        .cell.obstacle {
+            background-color: #6b4f4f;
+        }
+
+        .cell.dock {
+            background-color: #7bd58c;
+            color: #333;
+        }
+
+        .cell.dock.robot-present {
+            border: 3px solid #5cb85c;
+            box-shadow: 0 0 10px #7bd58c;
+        }
+
+        .robot {
+            position: absolute;
+            width: calc(var(--cell-size) * 1.2);
+            height: calc(var(--cell-size) * 1.2);
+            background-color: #3a88f5;
+            border: 3px solid #1f4e96;
+            border-radius: 50%;
+            z-index: 100;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: calc(var(--cell-size) * 0.4);
+            color: white;
+            font-weight: bold;
+            box-shadow: 0 3px 6px rgba(0,0,0,0.4);
+            transform: translate(-50%, -50%);
+        }
+
+        .hand-raise-indicator {
+            position: absolute;
+            top: -5px;
+            right: -5px;
+            width: 12px;
+            height: 12px;
+            background-color: #ff4444;
+            border: 2px solid #cc0000;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 8px;
+            color: white;
+            font-weight: bold;
+            z-index: 50;
+        }
+
+        .path-line {
+            position: absolute;
+            background-color: #4cce9a;
+            height: 3px;
+            z-index: 25;
+            transform-origin: left center;
+        }
+
+        .controls-section {
+            margin-bottom: 25px;
+        }
+
+        .controls-section h3 {
+            color: #ecf0f1;
+            margin-bottom: 10px;
+            font-size: 16px;
+            border-bottom: 2px solid #3498db;
+            padding-bottom: 5px;
+        }
+
+        .mode-buttons {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .mode-btn {
+            background-color: #3498db;
+            color: white;
+            border: none;
+            padding: 10px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background-color 0.3s ease;
+        }
+
+        .mode-btn:hover {
+            background-color: #2980b9;
+        }
+
+        .mode-btn.active {
+            background-color: #e74c3c;
+        }
+
+        .action-btn {
+            background-color: #27ae60;
+            color: white;
+            border: none;
+            padding: 12px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            margin-bottom: 8px;
+            width: 100%;
+            transition: background-color 0.3s ease;
+        }
+
+        .action-btn:hover {
+            background-color: #229954;
+        }
+
+        .action-btn:disabled {
+            background-color: #7f8c8d;
+            cursor: not-allowed;
+        }
+
+        .status-display {
+            background-color: #34495e;
+            padding: 15px;
+            border-radius: 5px;
+            margin-top: 20px;
+        }
+
+        .status-display h4 {
+            color: #ecf0f1;
+            margin-bottom: 10px;
+        }
+
+        .status-text {
+            color: #bdc3c7;
+            font-size: 14px;
+            line-height: 1.4;
+        }
+
+        .robot-info {
+            background-color: #8e44ad;
+            padding: 15px;
+            border-radius: 5px;
+            margin-top: 15px;
+        }
+
+        .robot-info h4 {
+            color: #ecf0f1;
+            margin-bottom: 10px;
+        }
+
+        .robot-stats {
+            color: #d2b4de;
+            font-size: 12px;
+        }
+
+        .grade-report {
+            background-color: #e67e22;
+            padding: 15px;
+            border-radius: 5px;
+            margin-top: 15px;
+        }
+
+        .grade-report h4 {
+            color: #ecf0f1;
+            margin-bottom: 10px;
+        }
+
+        .grade-list {
+            color: #f39c12;
+            font-size: 12px;
+            max-height: 150px;
+            overflow-y: auto;
+        }
+
+        .grade-item {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 5px;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+        }
+
+        .modal-content {
+            background-color: white;
+            margin: 15% auto;
+            padding: 20px;
+            border-radius: 10px;
+            width: 80%;
+            max-width: 500px;
+            text-align: center;
+        }
+
+        .modal h2 {
+            color: #2c3e50;
+            margin-bottom: 20px;
+        }
+
+        .modal button {
+            background-color: #3498db;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+
+        .modal button:hover {
+            background-color: #2980b9;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); }
+        }
+
+        .robot.moving {
+            animation: pulse 0.5s infinite;
+        }
+
+        .robot.idle {
+            animation: pulse 2s infinite;
+        }
+
+        .robot.at-dock {
+            box-shadow: 0 0 10px #7bd58c;
+            border-color: #5cb85c;
+        }
+
+        .desk.hand-raised {
+            animation: pulse 1s infinite;
+        }
+
+        /* Media Queries for Responsive Design */
+        @media (max-width: 1200px) {
+            :root {
+                --cell-size: 28px;
+            }
+            
+            .classroom-area {
+                min-width: 500px;
+            }
+            
+            .controls-panel {
+                width: 280px;
+                min-width: 220px;
+            }
+        }
+
+        @media (max-width: 1000px) {
+            :root {
+                --cell-size: 24px;
+            }
+            
+            .classroom-area {
+                min-width: 400px;
+                padding: 5px;
+            }
+            
+            .controls-panel {
+                width: 250px;
+                min-width: 200px;
+                padding: 10px;
+            }
+            
+            .classroom-grid {
+                max-height: 80vh;
+            }
+        }
+
+        @media (max-width: 768px) {
+            :root {
+                --cell-size: 20px;
+            }
+            
+            .classroom-area {
+                min-width: 350px;
+                padding: 3px;
+            }
+            
+            .controls-panel {
+                width: 220px;
+                min-width: 180px;
+                padding: 8px;
+            }
+            
+            .controls-section {
+                margin-bottom: 15px;
+            }
+            
+            .controls-section h3 {
+                font-size: 14px;
+            }
+            
+            .mode-btn, .action-btn {
+                padding: 8px;
+                font-size: 12px;
+            }
+            
+            .status-display, .robot-info, .grade-report {
+                padding: 10px;
+            }
+            
+            .classroom-grid {
+                max-height: 75vh;
+            }
+        }
+
+        @media (max-width: 600px) {
+            :root {
+                --cell-size: 16px;
+            }
+            
+            .classroom-area {
+                min-width: 300px;
+                padding: 2px;
+            }
+            
+            .controls-panel {
+                width: 200px;
+                min-width: 160px;
+                padding: 6px;
+            }
+            
+            .classroom-area h1 {
+                font-size: 18px;
+                margin-bottom: 10px;
+            }
+            
+            .classroom-grid {
+                padding: 5px;
+                max-height: 70vh;
+            }
+            
+            .cell {
+                font-size: calc(var(--cell-size) * 0.3);
+            }
+        }
+
+        @media (max-width: 480px) {
+            :root {
+                --cell-size: 14px;
+            }
+            
+            .classroom-area {
+                min-width: 250px;
+                padding: 1px;
+            }
+            
+            .controls-panel {
+                width: 180px;
+                min-width: 140px;
+                padding: 4px;
+            }
+            
+            .classroom-grid {
+                padding: 3px;
+                max-height: 65vh;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="main-container">
+        <div class="classroom-area">
+            <h1 style="text-align: center; color: #2c3e50; margin-bottom: 20px;">
+                Classroom Paper Robot Simulator
+            </h1>
+            <div class="classroom-grid" id="classroomGrid">
+                <!-- Grid cells will be generated by JavaScript -->
+            </div>
+        </div>
+
+        <div class="controls-panel">
+            <div class="controls-section">
+                <h3>Interaction Mode</h3>
+                <div class="mode-buttons">
+                    <button class="mode-btn active" data-mode="target">Set Target</button>
+                    <button class="mode-btn" data-mode="obstacle">Toggle Obstacles</button>
+                    <button class="mode-btn" data-mode="handraise">Raise Hand</button>
+                </div>
+            </div>
+
+            <div class="controls-section">
+                <h3>Automation Routines</h3>
+                <button class="action-btn" id="passOutBtn">Pass Out Papers</button>
+                <button class="action-btn" id="collectBtn">Collect & Grade Tests</button>
+                <button class="action-btn" id="returnBtn">Return to Dock</button>
+                <button class="action-btn" id="clearObstaclesBtn">Clear Obstacles</button>
+                <button class="action-btn" id="toggleScanningBtn">Toggle Hand Scanning</button>
+            </div>
+
+            <div class="controls-section">
+                <h3>Speed Control</h3>
+                <button class="action-btn" id="speedDownBtn">Slower (0.5x)</button>
+                <button class="action-btn" id="normalSpeedBtn">Normal (1x)</button>
+                <button class="action-btn" id="speedUpBtn">Faster (2x)</button>
+                <button class="action-btn" id="turboSpeedBtn">Turbo (4x)</button>
+            </div>
+
+            <div class="status-display">
+                <h4>Status</h4>
+                <div class="status-text" id="statusText">Ready for instructions.</div>
+            </div>
+
+            <div class="robot-info">
+                <h4>Robot Status</h4>
+                <div class="robot-stats" id="robotStats">
+                    <div>Position: (9, 41)</div>
+                    <div>Papers Carrying: 20</div>
+                    <div>Current Task: Idle</div>
+                    <div>Hand Scanning: Enabled</div>
+                </div>
+            </div>
+
+            <div class="grade-report">
+                <h4>Grade Report</h4>
+                <button class="action-btn" id="showGradesBtn">Show Grades</button>
+                <div class="grade-list" id="gradeList">
+                    No grades yet - run collection routine first.
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Grade Report Modal -->
+    <div id="gradeModal" class="modal">
+        <div class="modal-content">
+            <h2>Class Grade Report</h2>
+            <div id="gradeModalContent"></div>
+            <button onclick="closeGradeModal()">Close</button>
+        </div>
+    </div>
+
+    <script>
+        // Classroom Robot Simulator - Web Version
+        class ClassroomSimulator {
+            constructor() {
+                this.gridWidth = 72;
+                this.gridHeight = 48;
+                this.currentMode = 'target';
+                this.robotPosition = { x: 9, y: 41 }; // Start at dock center (not on a desk)
+                this.robotPath = [];
+                this.currentTask = null;
+                this.taskQueue = [];
+                this.carryingPapers = 20;
+                this.scanningEnabled = true;
+                this.desks = {};
+                this.pathLines = [];
+                this.speedMultiplier = 1; // 1 = normal speed, 2 = 2x speed, 0.5 = half speed
+                
+                this.getCellSize();
+                this.initializeClassroom();
+                this.setupEventListeners();
+                this.updateDisplay();
+                this.startHandScanning();
+                
+                // Listen for window resize to update cell size
+                window.addEventListener('resize', () => {
+                    this.getCellSize();
+                    this.updateRobotPosition();
+                });
+            }
+
+            getCellSize() {
+                const rootStyles = getComputedStyle(document.documentElement);
+                this.cellSize = parseInt(rootStyles.getPropertyValue('--cell-size')) || 32;
+            }
+
+            initializeClassroom() {
+                const grid = document.getElementById('classroomGrid');
+                grid.innerHTML = '';
+                
+                // Create grid cells
+                for (let y = 0; y < this.gridHeight; y++) {
+                    for (let x = 0; x < this.gridWidth; x++) {
+                        const cell = document.createElement('div');
+                        cell.className = 'cell floor';
+                        cell.dataset.x = x;
+                        cell.dataset.y = y;
+                        
+                        // Set dock position (4x4 tiles at position 8,40)
+                        if (x >= 8 && x <= 11 && y >= 40 && y <= 43) {
+                            cell.className = 'cell dock';
+                        }
+                        
+                        // Create desks
+                        if (this.isDeskPosition(x, y)) {
+                            cell.className = 'cell desk';
+                            const deskId = this.getDeskId(x, y);
+                            const studentName = this.getStudentName(deskId);
+                            
+                            // Only show desk ID on the top-left cell of each 4x4 desk
+                            const deskRows = [12, 20, 28, 36];
+                            const deskCols = [20, 28, 36, 44, 52];
+                            const isTopLeft = deskRows.includes(y) && deskCols.includes(x);
+                            
+                            if (isTopLeft) {
+                                cell.innerHTML = deskId;
+                                cell.title = `${deskId}: ${studentName}`;
+                                
+                                // Store desk data with position at the front edge of the desk (not inside)
+                                this.desks[deskId] = {
+                                    id: deskId,
+                                    x: x - 1, // One cell to the left of the desk (front edge)
+                                    y: y + 1, // One cell down from the top (middle height)
+                                    studentName: studentName,
+                                    needsPaper: true,
+                                    hasSubmitted: false,
+                                    grade: null,
+                                    handRaised: false,
+                                    answers: this.generateAnswers(deskId)
+                                };
+                            }
+                        }
+                        
+                        grid.appendChild(cell);
+                    }
+                }
+                
+                // Create robot
+                this.createRobot();
+                
+                // Debug: Log all created desks
+                console.log(`Created ${Object.keys(this.desks).length} desks:`, Object.keys(this.desks).sort());
+            }
+
+            isDeskPosition(x, y) {
+                // Desk positions are 4x4 tiles, arranged in rows
+                const deskRows = [12, 20, 28, 36]; // 3*4, 5*4, 7*4, 9*4
+                const deskCols = [20, 28, 36, 44, 52]; // 5*4, 7*4, 9*4, 11*4, 13*4
+                
+                // Check if position is within any desk's 4x4 area
+                for (let row of deskRows) {
+                    for (let col of deskCols) {
+                        if (x >= col && x <= col + 3 && y >= row && y <= row + 3) {
+                            return true;
+                        }
+                    }
+                }
+                return false;
+            }
+
+            getDeskId(x, y) {
+                const deskRows = [12, 20, 28, 36]; // 3*4, 5*4, 7*4, 9*4
+                const deskCols = [20, 28, 36, 44, 52]; // 5*4, 7*4, 9*4, 11*4, 13*4
+                
+                // Find which desk this position belongs to
+                for (let rowIndex = 0; rowIndex < deskRows.length; rowIndex++) {
+                    for (let colIndex = 0; colIndex < deskCols.length; colIndex++) {
+                        const deskRow = deskRows[rowIndex];
+                        const deskCol = deskCols[colIndex];
+                        if (x >= deskCol && x <= deskCol + 3 && y >= deskRow && y <= deskRow + 3) {
+                            const deskNumber = rowIndex * 5 + colIndex + 1;
+                            return `D${deskNumber.toString().padStart(2, '0')}`;
+                        }
+                    }
+                }
+                return null;
+            }
+
+            getStudentName(deskId) {
+                const names = [
+                    "Alex", "Brooke", "Chris", "Devon", "Emery", "Frankie",
+                    "Genesis", "Harper", "Indy", "Jordan", "Kai", "Logan",
+                    "Morgan", "Nico", "Oakley", "Parker", "Quinn", "Riley",
+                    "Sage", "Taylor"
+                ];
+                const deskNum = parseInt(deskId.substring(1)) - 1;
+                return names[deskNum % names.length];
+            }
+
+            generateAnswers(deskId) {
+                const answerKey = ["B", "D", "A", "C", "B", "A", "D", "C", "B", "A"];
+                const options = ["A", "B", "C", "D"];
+                const deskNum = parseInt(deskId.substring(1));
+                const seed = deskNum * 97;
+                
+                // Simple pseudo-random generator
+                let rng = seed;
+                const answers = [];
+                for (let i = 0; i < answerKey.length; i++) {
+                    rng = (rng * 9301 + 49297) % 233280;
+                    const choice = Math.floor((rng / 233280) * 4);
+                    answers.push(options[choice]);
+                }
+                return answers;
+            }
+
+            createRobot() {
+                const grid = document.getElementById('classroomGrid');
+                const robot = document.createElement('div');
+                robot.className = 'robot idle';
+                robot.id = 'robot';
+                robot.innerHTML = 'R';
+                grid.appendChild(robot);
+                this.updateRobotPosition();
+            }
+
+            updateRobotPosition() {
+                const robot = document.getElementById('robot');
+                // Position robot at the center of the grid cell
+                // With CSS transform: translate(-50%, -50%), we position at the cell center
+                
+                // Calculate cell center position
+                const cellCenterX = 10 + (this.robotPosition.x * (this.cellSize + 1)) + (this.cellSize / 2);
+                const cellCenterY = 10 + (this.robotPosition.y * (this.cellSize + 1)) + (this.cellSize / 2);
+                
+                robot.style.left = cellCenterX + 'px';
+                robot.style.top = cellCenterY + 'px';
+                
+                // Add dock visual effects
+                const isAtDock = this.robotPosition.x >= 8 && this.robotPosition.x <= 11 && 
+                                this.robotPosition.y >= 40 && this.robotPosition.y <= 43;
+                if (isAtDock) {
+                    robot.classList.add('at-dock');
+                    // Highlight the dock cells
+                    for (let x = 8; x <= 11; x++) {
+                        for (let y = 40; y <= 43; y++) {
+                            const dockCell = document.querySelector(`[data-x="${x}"][data-y="${y}"]`);
+                            if (dockCell) {
+                                dockCell.classList.add('robot-present');
+                            }
+                        }
+                    }
+                } else {
+                    robot.classList.remove('at-dock');
+                    // Remove highlight from dock cells
+                    for (let x = 8; x <= 11; x++) {
+                        for (let y = 40; y <= 43; y++) {
+                            const dockCell = document.querySelector(`[data-x="${x}"][data-y="${y}"]`);
+                            if (dockCell) {
+                                dockCell.classList.remove('robot-present');
+                            }
+                        }
+                    }
+                }
+            }
+
+            setupEventListeners() {
+                // Mode buttons
+                document.querySelectorAll('.mode-btn').forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
+                        e.target.classList.add('active');
+                        this.currentMode = e.target.dataset.mode;
+                        this.updateStatus(`Mode: ${e.target.textContent}`);
+                    });
+                });
+
+                // Grid clicks
+                document.getElementById('classroomGrid').addEventListener('click', (e) => {
+                    if (e.target.classList.contains('cell')) {
+                        const x = parseInt(e.target.dataset.x);
+                        const y = parseInt(e.target.dataset.y);
+                        this.handleCellClick(x, y, e.target);
+                    }
+                });
+
+                // Action buttons
+                document.getElementById('passOutBtn').addEventListener('click', () => this.passOutPapers());
+                document.getElementById('collectBtn').addEventListener('click', () => this.collectTests());
+                document.getElementById('returnBtn').addEventListener('click', () => this.returnToDock());
+                document.getElementById('clearObstaclesBtn').addEventListener('click', () => this.clearObstacles());
+                document.getElementById('toggleScanningBtn').addEventListener('click', () => this.toggleScanning());
+                document.getElementById('showGradesBtn').addEventListener('click', () => this.showGradeReport());
+                
+                // Speed control buttons
+                document.getElementById('speedDownBtn').addEventListener('click', () => this.setSpeed(0.5));
+                document.getElementById('normalSpeedBtn').addEventListener('click', () => this.setSpeed(1));
+                document.getElementById('speedUpBtn').addEventListener('click', () => this.setSpeed(2));
+                document.getElementById('turboSpeedBtn').addEventListener('click', () => this.setSpeed(4));
+            }
+
+            handleCellClick(x, y, cell) {
+        switch (this.currentMode) {
+            case 'target':
+                this.setRobotTarget(x, y);
+                break;
+            case 'obstacle':
+                this.toggleObstacle(x, y, cell);
+                break;
+            case 'handraise':
+                this.raiseHand(x, y, cell);
+                break;
+        }
+            }
+
+            setRobotTarget(x, y) {
+                this.cancelCurrentTask();
+                this.robotPath = this.findPath(this.robotPosition.x, this.robotPosition.y, x, y);
+                if (this.robotPath.length > 0) {
+                    this.currentTask = { type: 'move', target: { x, y } };
+                    this.updateStatus(`Moving robot to (${x}, ${y})`);
+                    this.moveRobot();
+                } else {
+                    this.updateStatus(`No path to (${x}, ${y})`);
+                }
+            }
+
+            toggleObstacle(x, y, cell) {
+                if (cell.classList.contains('dock') || cell.classList.contains('desk')) {
+                    this.updateStatus('Cannot place obstacle on desk or dock');
+                    return;
+                }
+                
+                if (cell.classList.contains('obstacle')) {
+                    cell.className = 'cell floor';
+                    this.updateStatus(`Removed obstacle at (${x}, ${y})`);
+                } else {
+                    cell.className = 'cell obstacle';
+                    this.updateStatus(`Added obstacle at (${x}, ${y})`);
+                }
+            }
+
+            raiseHand(x, y, cell) {
+                const deskId = cell.textContent.trim();
+                if (deskId && this.desks[deskId]) {
+                    this.desks[deskId].handRaised = true;
+                    // Turn desk red to show hand is raised
+                    cell.style.backgroundColor = '#ff4444';
+                    cell.style.color = 'white';
+                    this.updateStatus(`${this.desks[deskId].studentName} raised their hand!`);
+                } else {
+                    this.updateStatus('No desk at this location');
+                }
+            }
+
+            passOutPapers() {
+                console.log('passOutPapers called');
+                const desksNeedingPapers = Object.values(this.desks).filter(desk => desk.needsPaper);
+                console.log(`Desks needing papers: ${desksNeedingPapers.length}`);
+                if (desksNeedingPapers.length === 0) {
+                    this.updateStatus('All students already have papers');
+                    return;
+                }
+
+                this.cancelCurrentTask();
+                
+                // Disable hand scanning during pass out to prevent interference
+                this.scanningEnabled = false;
+                
+                // Efficient route: All 20 desks in the specified order ending with D05
+                const efficientRoute = ['D16', 'D11', 'D06', 'D01', 'D02', 'D07', 'D12', 'D17', 'D18', 'D13', 
+                                      'D08', 'D03', 'D04', 'D09', 'D14', 'D19', 'D20', 'D15', 'D10', 'D05'];
+                
+                // Filter to only include desks that need papers and exist
+                const tasksToExecute = efficientRoute
+                    .filter(deskId => this.desks[deskId] && this.desks[deskId].needsPaper)
+                    .map(deskId => ({
+                        type: 'passOut',
+                        target: { x: this.desks[deskId].x, y: this.desks[deskId].y },
+                        deskId: deskId
+                    }));
+                
+                // Add return to dock task at the end
+                tasksToExecute.push({
+                    type: 'dock',
+                    target: { x: 9, y: 41 }
+                });
+                
+                console.log(`Created ${tasksToExecute.length} tasks:`, tasksToExecute);
+                console.log(`Task queue before assignment:`, this.taskQueue);
+                this.taskQueue = tasksToExecute;
+                console.log(`Task queue after assignment:`, this.taskQueue);
+                this.carryingPapers = tasksToExecute.length - 1; // Subtract 1 for the dock task
+                this.updateStatus(`Starting efficient pass-out route: ${tasksToExecute.length - 1} desks`);
+                this.executeNextTask();
+            }
+
+            collectTests() {
+                const desksToCollect = Object.values(this.desks).filter(desk => !desk.hasSubmitted);
+                if (desksToCollect.length === 0) {
+                    this.updateStatus('No outstanding tests to collect');
+                    return;
+                }
+
+                this.cancelCurrentTask();
+                
+                // Disable hand scanning during collection to prevent interference
+                this.scanningEnabled = false;
+                
+                // Use the same efficient route as paper passing: All 20 desks in the specified order ending with D05
+                const efficientRoute = ['D16', 'D11', 'D06', 'D01', 'D02', 'D07', 'D12', 'D17', 'D18', 'D13', 
+                                      'D08', 'D03', 'D04', 'D09', 'D14', 'D19', 'D20', 'D15', 'D10', 'D05'];
+                
+                // Filter to only include desks that need collection and exist
+                const tasksToExecute = efficientRoute
+                    .filter(deskId => this.desks[deskId] && !this.desks[deskId].hasSubmitted)
+                    .map(deskId => ({
+                        type: 'collect',
+                        target: { x: this.desks[deskId].x, y: this.desks[deskId].y },
+                        deskId: deskId
+                    }));
+                
+                // Add return to dock task at the end
+                tasksToExecute.push({
+                    type: 'dock',
+                    target: { x: 9, y: 41 }
+                });
+                
+                this.taskQueue = tasksToExecute;
+                this.updateStatus(`Starting efficient collection route: ${tasksToExecute.length - 1} tests`);
+                this.executeNextTask();
+            }
+
+            returnToDock() {
+                this.cancelCurrentTask();
+                this.taskQueue = [{ type: 'dock', target: { x: 9, y: 41 } }];
+                this.updateStatus('Returning to dock');
+                this.executeNextTask();
+            }
+
+            clearObstacles() {
+                document.querySelectorAll('.cell.obstacle').forEach(cell => {
+                    cell.className = 'cell floor';
+                });
+                this.updateStatus('Cleared all obstacles');
+            }
+
+            toggleScanning() {
+                this.scanningEnabled = !this.scanningEnabled;
+                this.updateStatus(`Hand raise scanning ${this.scanningEnabled ? 'enabled' : 'disabled'}`);
+                
+                // If scanning is enabled, immediately check for raised hands and respond
+                if (this.scanningEnabled) {
+                    const raisedHands = Object.values(this.desks).filter(desk => desk.handRaised);
+                    if (raisedHands.length > 0 && !this.currentTask && this.taskQueue.length === 0) {
+                        console.log(`Found ${raisedHands.length} raised hands:`, raisedHands.map(d => d.id));
+                        
+                        // Create efficient route for all raised hands - same order as pass out/collect
+                        const efficientRoute = ['D16', 'D11', 'D06', 'D01', 'D02', 'D07', 'D12', 'D17', 'D18', 'D13', 
+                                              'D08', 'D03', 'D04', 'D09', 'D14', 'D19', 'D20', 'D15', 'D10', 'D05'];
+                        
+                        // Filter to only include desks with raised hands and exist
+                        const tasksToExecute = efficientRoute
+                            .filter(deskId => this.desks[deskId] && this.desks[deskId].handRaised)
+                            .map(deskId => ({
+                                type: 'handRaise',
+                                target: { x: this.desks[deskId].x, y: this.desks[deskId].y },
+                                deskId: deskId
+                            }));
+                        
+                        // Add return to dock task at the end
+                        tasksToExecute.push({
+                            type: 'dock',
+                            target: { x: 9, y: 41 }
+                        });
+                        
+                        console.log(`Created ${tasksToExecute.length} hand raise tasks:`, tasksToExecute);
+                        this.taskQueue = tasksToExecute;
+                        this.updateStatus(`Responding to ${tasksToExecute.length - 1} raised hands`);
+                        this.executeNextTask();
+                    } else if (raisedHands.length === 0) {
+                        this.updateStatus('No raised hands detected');
+                    } else {
+                        this.updateStatus('Robot is busy with another task');
+                    }
+                }
+                
+                this.updateDisplay();
+            }
+
+            setSpeed(speed) {
+                this.speedMultiplier = speed;
+                this.updateStatus(`Simulation speed set to ${speed}x`);
+                this.updateDisplay();
+            }
+
+            increaseSpeed() {
+                if (this.speedMultiplier < 4) {
+                    this.speedMultiplier = Math.min(4, this.speedMultiplier * 2);
+                    this.updateStatus(`Speed increased to ${this.speedMultiplier}x`);
+                    this.updateDisplay();
+                }
+            }
+
+            decreaseSpeed() {
+                if (this.speedMultiplier > 0.25) {
+                    this.speedMultiplier = Math.max(0.25, this.speedMultiplier / 2);
+                    this.updateStatus(`Speed decreased to ${this.speedMultiplier}x`);
+                    this.updateDisplay();
+                }
+            }
+
+            executeNextTask() {
+                console.log(`executeNextTask called, queue length: ${this.taskQueue.length}`);
+                console.log(`Current task queue:`, this.taskQueue.map(t => `${t.type}->${t.deskId || 'dock'}`));
+                if (this.taskQueue.length === 0) {
+                    console.log('No more tasks in queue - robot should be idle');
+                    this.currentTask = null;
+                    this.updateDisplay();
+                    return;
+                }
+
+                this.currentTask = this.taskQueue.shift();
+                console.log(`Executing task:`, this.currentTask);
+                console.log(`Remaining queue after shift:`, this.taskQueue.map(t => `${t.type}->${t.deskId || 'dock'}`));
+                this.robotPath = this.findPath(
+                    this.robotPosition.x, 
+                    this.robotPosition.y, 
+                    this.currentTask.target.x, 
+                    this.currentTask.target.y
+                );
+                console.log(`Generated path for task:`, this.robotPath);
+
+                if (this.robotPath.length > 0) {
+                    this.moveRobot();
+                } else {
+                    this.updateStatus(`Path blocked for ${this.currentTask.type}`);
+                    this.executeNextTask();
+                }
+            }
+
+            moveRobot() {
+                if (this.robotPath.length === 0) {
+                    this.completeCurrentTask();
+                    return;
+                }
+
+                const nextPos = this.robotPath.shift();
+                this.robotPosition = nextPos;
+                this.updateRobotPosition();
+                
+                // Add moving animation with speed multiplier
+                const robot = document.getElementById('robot');
+                robot.classList.add('moving');
+                const moveDelay = Math.max(50, 300 / this.speedMultiplier); // Minimum 50ms delay
+                setTimeout(() => {
+                    robot.classList.remove('moving');
+                    this.moveRobot();
+                }, moveDelay);
+            }
+
+            completeCurrentTask() {
+                if (!this.currentTask) return;
+
+                switch (this.currentTask.type) {
+                    case 'passOut':
+                        this.completePassOut();
+                        break;
+                    case 'collect':
+                        this.completeCollection();
+                        break;
+                    case 'handRaise':
+                        this.completeHandRaise();
+                        break;
+                    case 'dock':
+                        this.updateStatus('Robot docked and charging');
+                        break;
+                }
+
+                this.currentTask = null;
+                this.executeNextTask();
+            }
+
+            completePassOut() {
+                const desk = this.desks[this.currentTask.deskId];
+                console.log(`Completing pass out to ${desk?.id}, needsPaper: ${desk?.needsPaper}`);
+                if (desk && desk.needsPaper) {
+                    desk.needsPaper = false;
+                    this.carryingPapers = Math.max(0, this.carryingPapers - 1);
+                    this.updateStatus(`Delivered papers to ${desk.id} (${desk.studentName})`);
+                    console.log(`Completed pass out to ${desk.id}, remaining tasks: ${this.taskQueue.length}`);
+                    console.log(`Remaining task queue:`, this.taskQueue.map(t => `${t.type}->${t.deskId || 'dock'}`));
+                    
+                    // Check if this was the last desk task (next task should be dock)
+                    if (this.taskQueue.length > 0) {
+                        const nextTask = this.taskQueue[0];
+                        console.log(`Next task:`, nextTask);
+                        if (nextTask.type === 'dock') {
+                            console.log(`Last desk completed, proceeding to dock`);
+                        } else {
+                            console.log(`WARNING: Next task is not dock! It's ${nextTask.type}->${nextTask.deskId}`);
+                        }
+                    } else {
+                        // Re-enable scanning when task queue is empty
+                        this.scanningEnabled = true;
+                        console.log(`Task queue empty, re-enabled hand scanning`);
+                    }
+                } else {
+                    console.log(`Desk ${desk?.id} already has papers or doesn't exist`);
+                }
+            }
+
+            completeCollection() {
+                const desk = this.desks[this.currentTask.deskId];
+                if (desk && !desk.hasSubmitted) {
+                    desk.hasSubmitted = true;
+                    desk.grade = this.calculateGrade(desk);
+                    this.updateStatus(`Collected and graded ${desk.id} (${desk.studentName}) — ${desk.grade}%`);
+                    
+                    // Re-enable scanning when task queue is empty
+                    if (this.taskQueue.length === 0) {
+                        this.scanningEnabled = true;
+                        console.log(`Collection task queue empty, re-enabled hand scanning`);
+                    }
+                }
+            }
+
+            completeHandRaise() {
+                const desk = this.desks[this.currentTask.deskId];
+                if (desk && desk.handRaised) {
+                    desk.handRaised = false;
+                    
+                    // Reset desk color back to normal
+                    // First try to find by desk ID text content (most reliable)
+                    const allCells = document.querySelectorAll('.cell');
+                    let deskCell = null;
+                    for (let cell of allCells) {
+                        if (cell.textContent.trim() === desk.id) {
+                            deskCell = cell;
+                            break;
+                        }
+                    }
+                    
+                    if (deskCell) {
+                        console.log(`Found desk cell by ID text for ${desk.id}`);
+                        deskCell.style.backgroundColor = '';
+                        deskCell.style.color = '';
+                        console.log(`Cleared hand raised indicator for ${desk.id}`);
+                    } else {
+                        console.log(`Could not find desk cell for ${desk.id} by ID text`);
+                        // Fallback: try by coordinates
+                        const coordCell = document.querySelector(`[data-x="${desk.x}"][data-y="${desk.y}"]`);
+                        if (coordCell) {
+                            console.log(`Found desk cell by coordinates for ${desk.id}`);
+                            coordCell.style.backgroundColor = '';
+                            coordCell.style.color = '';
+                        } else {
+                            console.log(`Could not find desk cell for ${desk.id} at (${desk.x}, ${desk.y})`);
+                        }
+                    }
+                    
+                    if (desk.needsPaper) {
+                        desk.needsPaper = false;
+                        this.updateStatus(`Delivered replacement paper to ${desk.id}`);
+                    } else if (!desk.hasSubmitted) {
+                        this.updateStatus(`Checked in with ${desk.id}; student resumes work`);
+                    } else {
+                        this.updateStatus(`Collected question from ${desk.id}; all set`);
+                    }
+                    
+                    console.log(`Completed hand raise response to ${desk.id}, remaining tasks: ${this.taskQueue.length}`);
+                    
+                    // Re-enable scanning when task queue is empty
+                    if (this.taskQueue.length === 0) {
+                        this.scanningEnabled = true;
+                        console.log(`Hand raise task queue empty, re-enabled hand scanning`);
+                    }
+                }
+            }
+
+            calculateGrade(desk) {
+                const answerKey = ["B", "D", "A", "C", "B", "A", "D", "C", "B", "A"];
+                const correct = desk.answers.reduce((count, answer, index) => {
+                    return count + (answer === answerKey[index] ? 1 : 0);
+                }, 0);
+                
+                // Convert to realistic range: 65% to 100%
+                const percentage = correct / answerKey.length;
+                const minGrade = 65; // Minimum grade
+                const maxGrade = 100; // Maximum grade
+                const gradeRange = maxGrade - minGrade;
+                const realisticGrade = minGrade + (percentage * gradeRange);
+                
+                return Math.round(realisticGrade);
+            }
+
+            cancelCurrentTask() {
+                this.taskQueue = [];
+                this.currentTask = null;
+                this.robotPath = [];
+                this.clearPathLines();
+            }
+
+            findPath(startX, startY, endX, endY) {
+                // Use A* pathfinding for better obstacle avoidance
+                return this.findPathAStar(startX, startY, endX, endY);
+            }
+
+            findPathAStar(startX, startY, endX, endY) {
+                const start = { x: Math.round(startX), y: Math.round(startY) };
+                const end = { x: Math.round(endX), y: Math.round(endY) };
+                
+                // If start and end are the same, return empty path
+                if (start.x === end.x && start.y === end.y) {
+                    return [];
+                }
+                
+                const openSet = [start];
+                const closedSet = new Set();
+                const cameFrom = new Map();
+                const gScore = new Map();
+                const fScore = new Map();
+                
+                // Initialize scores
+                gScore.set(`${start.x},${start.y}`, 0);
+                fScore.set(`${start.x},${start.y}`, this.heuristic(start, end));
+                
+                while (openSet.length > 0) {
+                    // Find node with lowest fScore
+                    let current = openSet[0];
+                    let currentIndex = 0;
+                    for (let i = 1; i < openSet.length; i++) {
+                        const currentF = fScore.get(`${openSet[i].x},${openSet[i].y}`) || Infinity;
+                        const bestF = fScore.get(`${current.x},${current.y}`) || Infinity;
+                        if (currentF < bestF) {
+                            current = openSet[i];
+                            currentIndex = i;
+                        }
+                    }
+                    
+                    // Remove current from openSet
+                    openSet.splice(currentIndex, 1);
+                    closedSet.add(`${current.x},${current.y}`);
+                    
+                    // Check if we reached the goal
+                    if (current.x === end.x && current.y === end.y) {
+                        return this.reconstructPath(cameFrom, current);
+                    }
+                    
+                    // Check all neighbors
+                    const neighbors = this.getNeighbors(current);
+                    for (const neighbor of neighbors) {
+                        const neighborKey = `${neighbor.x},${neighbor.y}`;
+                        
+                        if (closedSet.has(neighborKey)) {
+                            continue;
+                        }
+                        
+                        // Allow target position even if it's a desk
+                        if (!this.isValidPosition(neighbor.x, neighbor.y, end.x, end.y)) {
+                            continue;
+                        }
+                        
+                        const tentativeG = (gScore.get(`${current.x},${current.y}`) || 0) + 1;
+                        
+                        if (!openSet.some(node => node.x === neighbor.x && node.y === neighbor.y)) {
+                            openSet.push(neighbor);
+                        } else if (tentativeG >= (gScore.get(neighborKey) || Infinity)) {
+                            continue;
+                        }
+                        
+                        cameFrom.set(neighborKey, current);
+                        gScore.set(neighborKey, tentativeG);
+                        fScore.set(neighborKey, tentativeG + this.heuristic(neighbor, end));
+                    }
+                }
+                
+                // No path found, try simple pathfinding as fallback
+                return this.findPathSimple(startX, startY, endX, endY);
+            }
+
+            findPathSimple(startX, startY, endX, endY) {
+                // Fallback simple pathfinding
+                const path = [];
+                let currentX = Math.round(startX);
+                let currentY = Math.round(startY);
+                const targetX = Math.round(endX);
+                const targetY = Math.round(endY);
+
+                // Move horizontally first
+                while (currentX !== targetX) {
+                    if (currentX < targetX) currentX++;
+                    else currentX--;
+                    
+                    if (!this.isValidPosition(currentX, currentY, targetX, targetY)) {
+                        return this.findPathVerticalFirst(startX, startY, endX, endY);
+                    }
+                    path.push({ x: currentX, y: currentY });
+                }
+
+                // Move vertically
+                while (currentY !== targetY) {
+                    if (currentY < targetY) currentY++;
+                    else currentY--;
+                    
+                    if (!this.isValidPosition(currentX, currentY, targetX, targetY)) {
+                        return [];
+                    }
+                    path.push({ x: currentX, y: currentY });
+                }
+
+                return path;
+            }
+
+            heuristic(a, b) {
+                // Manhattan distance
+                return Math.abs(a.x - b.x) + Math.abs(a.y - b.y);
+            }
+
+            getNeighbors(node) {
+                // Get all 4-directional neighbors
+                return [
+                    { x: node.x + 1, y: node.y },
+                    { x: node.x - 1, y: node.y },
+                    { x: node.x, y: node.y + 1 },
+                    { x: node.x, y: node.y - 1 }
+                ];
+            }
+
+            reconstructPath(cameFrom, current) {
+                const path = [];
+                while (cameFrom.has(`${current.x},${current.y}`)) {
+                    path.unshift(current);
+                    current = cameFrom.get(`${current.x},${current.y}`);
+                }
+                return path;
+            }
+
+            findPathVerticalFirst(startX, startY, endX, endY) {
+                // Alternative pathfinding - move vertically first, then horizontally
+                const path = [];
+                let currentX = Math.round(startX);
+                let currentY = Math.round(startY);
+                const targetX = Math.round(endX);
+                const targetY = Math.round(endY);
+
+                // Move vertically first
+                while (currentY !== targetY) {
+                    if (currentY < targetY) currentY++;
+                    else currentY--;
+                    
+                    if (!this.isValidPosition(currentX, currentY, targetX, targetY)) {
+                        // If still blocked, return empty path
+                        return [];
+                    }
+                    path.push({ x: currentX, y: currentY });
+                }
+
+                // Move horizontally
+                while (currentX !== targetX) {
+                    if (currentX < targetX) currentX++;
+                    else currentX--;
+                    
+                    if (!this.isValidPosition(currentX, currentY, targetX, targetY)) {
+                        return [];
+                    }
+                    path.push({ x: currentX, y: currentY });
+                }
+
+                return path;
+            }
+
+            isValidPosition(x, y, targetX = null, targetY = null) {
+                // Check if position is valid (not a desk or obstacle)
+                const cell = document.querySelector(`[data-x="${x}"][data-y="${y}"]`);
+                if (!cell) {
+                    return false;
+                }
+                
+                // Allow the target position even if it's a desk (robot needs to go there)
+                if (targetX !== null && targetY !== null && x === targetX && y === targetY) {
+                    return true;
+                }
+                
+                // Allow floor, dock, but not desks or obstacles for intermediate positions
+                // Also check if this position is adjacent to a desk (robot can approach desks)
+                return !cell.classList.contains('desk') && !cell.classList.contains('obstacle');
+            }
+
+            updateHandRaiseIndicator(cell, show) {
+                let indicator = cell.querySelector('.hand-raise-indicator');
+                if (show && !indicator) {
+                    indicator = document.createElement('div');
+                    indicator.className = 'hand-raise-indicator';
+                    indicator.innerHTML = '!';
+                    cell.appendChild(indicator);
+                    cell.classList.add('hand-raised');
+                } else if (!show && indicator) {
+                    indicator.remove();
+                    cell.classList.remove('hand-raised');
+                }
+            }
+
+            startHandScanning() {
+                // Disabled automatic scanning - robot only responds to button clicks
+                // The toggleScanning() function now handles immediate response to raised hands
+                console.log('Hand scanning initialized (manual mode only)');
+            }
+
+            showGradeReport() {
+                const gradedDesks = Object.values(this.desks).filter(desk => desk.grade !== null);
+                if (gradedDesks.length === 0) {
+                    this.updateStatus('No graded tests yet - run collection routine first');
+                    return;
+                }
+
+                gradedDesks.sort((a, b) => a.id.localeCompare(b.id));
+                const average = gradedDesks.reduce((sum, desk) => sum + desk.grade, 0) / gradedDesks.length;
+                
+                let content = '<div style="text-align: left; margin-bottom: 20px;">';
+                gradedDesks.forEach(desk => {
+                    content += `<div style="margin-bottom: 5px;">${desk.id}: ${desk.grade}% (${desk.studentName})</div>`;
+                });
+                content += `<div style="margin-top: 15px; font-weight: bold; border-top: 1px solid #ccc; padding-top: 10px;">Class Average: ${average.toFixed(1)}%</div>`;
+                content += '</div>';
+
+                document.getElementById('gradeModalContent').innerHTML = content;
+                document.getElementById('gradeModal').style.display = 'block';
+            }
+
+            updateStatus(message) {
+                document.getElementById('statusText').textContent = message;
+            }
+
+            updateDisplay() {
+                const taskText = this.currentTask ? 
+                    `${this.currentTask.type} → ${this.currentTask.target.x},${this.currentTask.target.y}` : 
+                    'Idle';
+                
+                const queueText = this.taskQueue.length > 0 ? ` (+${this.taskQueue.length} queued)` : '';
+                const isAtDock = this.robotPosition.x >= 8 && this.robotPosition.x <= 11 && 
+                                this.robotPosition.y >= 40 && this.robotPosition.y <= 43;
+                const dockStatus = isAtDock ? ' (At Dock)' : '';
+                
+                document.getElementById('robotStats').innerHTML = `
+                    <div>Position: (${this.robotPosition.x}, ${this.robotPosition.y})${dockStatus}</div>
+                    <div>Papers Carrying: ${this.carryingPapers}</div>
+                    <div>Current Task: ${taskText}${queueText}</div>
+                    <div>Hand Scanning: ${this.scanningEnabled ? 'Enabled' : 'Disabled'}</div>
+                    <div>Speed: ${this.speedMultiplier}x</div>
+                `;
+            }
+
+            clearPathLines() {
+                this.pathLines.forEach(line => line.remove());
+                this.pathLines = [];
+            }
+        }
+
+        function closeGradeModal() {
+            document.getElementById('gradeModal').style.display = 'none';
+        }
+
+        // Initialize the simulator when the page loads
+        document.addEventListener('DOMContentLoaded', () => {
+            new ClassroomSimulator();
+        });
+    </script>
+</body>
+</html>
