@@ -1,4 +1,6 @@
-ROW_SPACING = 24        # distance between each row of desks
-SHIFT_RIGHT = 18        # aisle spacing in inches
-PAUSE_TIME = 1.5        # seconds
+WHEEL_DIAMETER_IN = 2.75
+TICKS_PER_ROT = 360
 
+ROW_SPACING_IN = 24
+SHIFT_RIGHT_IN = 18
+PAUSE_AT_DESK = 1.5
