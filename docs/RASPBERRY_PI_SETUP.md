@@ -220,28 +220,28 @@ Once hardware is working:
 
 1. **Configure your robot**
 
-   - Edit `cpsr/config/room.json` for your environment
-   - Tune `cpsr/config/gains.json` for PID parameters
-   - Update `cpsr/config/pins.json` for your sensors
+   - Edit `yahoo/config/room.json` for your environment
+   - Tune `yahoo/config/gains.json` for PID parameters
+   - Update `yahoo/config/pins.json` for your sensors
 
 2. **Add sensors**
 
-   - Implement sensor modules in `cpsr/sense/`
+   - Implement sensor modules in `yahoo/sense/`
    - Test each sensor individually
 
 3. **Develop navigation**
 
-   - Create odometry tracking in `cpsr/nav/odom.py`
-   - Implement drive control in `cpsr/nav/drive.py`
-   - Build path planning in `cpsr/nav/route.py`
+   - Create odometry tracking in `yahoo/nav/odom.py`
+   - Implement drive control in `yahoo/nav/drive.py`
+   - Build path planning in `yahoo/nav/route.py`
 
 4. **Build missions**
 
-   - Create delivery behaviors in `cpsr/mission/`
+   - Create delivery behaviors in `yahoo/mission/`
    - Test in controlled environment first
 
 5. **Web Interface**
-   - Develop Flask app in `cpsr/webui/`
+   - Develop Flask app in `yahoo/webui/`
    - Add camera streaming
    - Create control dashboard
 

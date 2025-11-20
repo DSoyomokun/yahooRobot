@@ -37,7 +37,7 @@ python main.py --simulate
 
 ### 3. Develop Your Code
 
-Write code in the `cpsr/` modules. The robot will automatically use simulation mode when `gopigo3` library is not available.
+Write code in the `yahoo/` modules. The robot will automatically use simulation mode when `gopigo3` library is not available.
 
 ---
 
@@ -111,7 +111,7 @@ python3 main.py --debug
 ## Project Structure Quick Reference
 
 ```
-cpsr/
+yahoo/
 ├── config/           # Configuration files
 │   ├── room.json     # Map layout, waypoints, delivery zones
 │   ├── gains.json    # PID tuning, motor speeds
@@ -144,22 +144,22 @@ cpsr/
 
 ### Add a New Sensor
 
-1. Create module in `cpsr/sense/` (e.g., `ultrasonic.py`)
+1. Create module in `yahoo/sense/` (e.g., `ultrasonic.py`)
 2. Define sensor class
-3. Add pin configuration to `cpsr/config/pins.json`
-4. Import in `cpsr/sense/__init__.py`
+3. Add pin configuration to `yahoo/config/pins.json`
+4. Import in `yahoo/sense/__init__.py`
 5. Test individually before integrating
 
 ### Tune PID Parameters
 
-1. Edit `cpsr/config/gains.json`
+1. Edit `yahoo/config/gains.json`
 2. Adjust `kp`, `ki`, `kd` values
 3. Test with manual control
 4. Document good values
 
 ### Add New Mission
 
-1. Create module in `cpsr/mission/` (e.g., `patrol.py`)
+1. Create module in `yahoo/mission/` (e.g., `patrol.py`)
 2. Implement mission class with `start()`, `update()`, `stop()` methods
 3. Add to mission controller
 4. Test in controlled environment
@@ -175,17 +175,17 @@ cpsr/
 pytest tests/
 
 # With coverage
-pytest --cov=cpsr tests/
+pytest --cov=yahoo tests/
 ```
 
 ### Code Quality
 
 ```bash
 # Format code
-black cpsr/ scripts/ main.py
+black yahoo/ scripts/ main.py
 
 # Lint code
-pylint cpsr/
+pylint yahoo/
 ```
 
 ---
@@ -240,8 +240,8 @@ source venv/bin/activate  # Linux/Mac
 
 2. **Implement core modules**
 
-   - Start with `cpsr/nav/drive.py` for basic movement
-   - Add sensors in `cpsr/sense/`
+   - Start with `yahoo/nav/drive.py` for basic movement
+   - Add sensors in `yahoo/sense/`
    - Build up to full autonomy
 
 3. **Test incrementally**
@@ -257,7 +257,7 @@ source venv/bin/activate  # Linux/Mac
    - Always have emergency stop ready!
 
 5. **Add web interface**
-   - Create dashboard in `cpsr/webui/`
+   - Create dashboard in `yahoo/webui/`
    - Add camera streaming
    - Remote monitoring and control
 

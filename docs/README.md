@@ -1,9 +1,9 @@
-# CPSR Documentation
+# Yahoo Robot Documentation
 
 ## Project Structure
 
 ```
-cpsr/
+yahoo/
 ├── config/          # Configuration files
 │   ├── room.json    # Map and waypoints
 │   ├── gains.json   # PID tuning parameters
@@ -59,7 +59,7 @@ cpsr/
 
 ## Configuration
 
-Edit the JSON files in `cpsr/config/` to customize:
+Edit the JSON files in `yahoo/config/` to customize:
 
 - Map layout and waypoints (`room.json`)
 - PID gains for navigation (`gains.json`)

@@ -1,7 +1,7 @@
 import cv2
 import time
 import mediapipe as mp
-from cpsr.sense.gesture import GestureDetector
+from yahoo.sense.gesture import GestureDetector
 
 mp_drawing = mp.solutions.drawing_utils
 mp_pose = mp.solutions.pose

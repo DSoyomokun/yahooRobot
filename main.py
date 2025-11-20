@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
 """
-CPSR Main Entry Point
+Yahoo Robot Main Entry Point
 Campus Package Service Robot
 """
 
 import argparse
 import logging
 import sys
-from cpsr.robot import Robot
+from yahoo.robot import Robot
 
 
 def setup_logging(level=logging.INFO):
@@ -24,7 +24,7 @@ def setup_logging(level=logging.INFO):
 
 def main():
     """Main entry point"""
-    parser = argparse.ArgumentParser(description='CPSR - Campus Package Service Robot')
+    parser = argparse.ArgumentParser(description='Yahoo Robot - Campus Package Service Robot')
     parser.add_argument('--simulate', action='store_true', 
                        help='Run in simulation mode without hardware')
     parser.add_argument('--debug', action='store_true',
@@ -39,7 +39,7 @@ def main():
     setup_logging(log_level)
     
     logger = logging.getLogger(__name__)
-    logger.info("Starting CPSR...")
+    logger.info("Starting Yahoo Robot...")
     
     try:
         # Initialize robot
