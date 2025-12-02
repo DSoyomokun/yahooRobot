@@ -8,7 +8,7 @@ Your GoPiGo3 robot project is fully configured and ready for development!
 
 ```
 csc4120/
-├── cpsr/                   # Main robot package
+├── yahoo/                   # Main robot package
 │   ├── __init__.py
 │   ├── robot.py           # Core Robot class with GoPiGo3 integration
 │   ├── config/            # Configuration files (JSON)
@@ -98,7 +98,7 @@ python main.py --simulate --debug
 
 #### 3. Develop Code
 
-Edit files in `cpsr/` - they will automatically use simulation mode when gopigo3 library is not available.
+Edit files in `yahoo/` - they will automatically use simulation mode when gopigo3 library is not available.
 
 ---
 
@@ -213,10 +213,10 @@ pytest tests/
 
 ```bash
 # Format code
-black cpsr/ scripts/ main.py
+black yahoo/ scripts/ main.py
 
 # Lint code
-pylint cpsr/
+pylint yahoo/
 ```
 
 ---
@@ -225,19 +225,19 @@ pylint cpsr/
 
 ### Phase 1: Core Development (Windows/Mac)
 
-1. **Implement drive control** - `cpsr/nav/drive.py`
+1. **Implement drive control** - `yahoo/nav/drive.py`
 
    - Forward/backward movement
    - Turning functions
    - Speed control
 
-2. **Add odometry** - `cpsr/nav/odom.py`
+2. **Add odometry** - `yahoo/nav/odom.py`
 
    - Track position using encoders
    - Calculate traveled distance
    - Estimate heading
 
-3. **Create sensor modules** - `cpsr/sense/`
+3. **Create sensor modules** - `yahoo/sense/`
    - Start with simulated sensors
    - Build interfaces that work with/without hardware
 
@@ -259,13 +259,13 @@ pylint cpsr/
 
 ### Phase 3: Advanced Features
 
-1. **Build missions** - `cpsr/mission/`
+1. **Build missions** - `yahoo/mission/`
 
    - Delivery behavior
    - Collection behavior
    - Waiting/queueing logic
 
-2. **Web interface** - `cpsr/webui/`
+2. **Web interface** - `yahoo/webui/`
 
    - Flask dashboard
    - Real-time monitoring
@@ -280,20 +280,20 @@ pylint cpsr/
 
 ## 📝 Configuration Files
 
-### `cpsr/config/room.json`
+### `yahoo/config/room.json`
 
 - Map layout
 - Waypoints and delivery zones
 - Obstacle definitions
 
-### `cpsr/config/gains.json`
+### `yahoo/config/gains.json`
 
 - PID tuning parameters
 - Motor speeds
 - Odometry calibration
 - Obstacle avoidance settings
 
-### `cpsr/config/pins.json`
+### `yahoo/config/pins.json`
 
 - GPIO pin assignments
 - I2C addresses
@@ -379,8 +379,8 @@ python main.py --simulate --debug
 
 ```bash
 pytest tests/
-black cpsr/
-pylint cpsr/
+black yahoo/
+pylint yahoo/
 ```
 
 ### 3. Commit Changes
@@ -444,13 +444,13 @@ python3 scripts/test_movement.py
 
 ## 🚧 Features to Implement
 
-- ⏳ Drive control (`cpsr/nav/drive.py`)
-- ⏳ Odometry (`cpsr/nav/odom.py`)
-- ⏳ Path planning (`cpsr/nav/route.py`)
-- ⏳ Sensor modules (`cpsr/sense/`)
-- ⏳ I/O devices (`cpsr/io/`)
-- ⏳ Mission behaviors (`cpsr/mission/`)
-- ⏳ Web interface (`cpsr/webui/`)
+- ⏳ Drive control (`yahoo/nav/drive.py`)
+- ⏳ Odometry (`yahoo/nav/odom.py`)
+- ⏳ Path planning (`yahoo/nav/route.py`)
+- ⏳ Sensor modules (`yahoo/sense/`)
+- ⏳ I/O devices (`yahoo/io/`)
+- ⏳ Mission behaviors (`yahoo/mission/`)
+- ⏳ Web interface (`yahoo/webui/`)
 
 ---
 

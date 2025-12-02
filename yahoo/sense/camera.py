@@ -1,10 +1,5 @@
 import cv2
 import time
-import mediapipe as mp
-from yahoo.sense.gesture import GestureDetector
-
-mp_drawing = mp.solutions.drawing_utils
-mp_pose = mp.solutions.pose
 
 def open_mac_camera(device_index=1, width=640, height=480):
     cap = cv2.VideoCapture(device_index, cv2.CAP_AVFOUNDATION)
@@ -16,7 +11,7 @@ def open_mac_camera(device_index=1, width=640, height=480):
     cap.set(cv2.CAP_PROP_FRAME_WIDTH, width)
     cap.set(cv2.CAP_PROP_FRAME_HEIGHT, height)
 
-    time.sleep(0.5)
+    time.sleep(0.5)  # let camera warm up
     return cap
 
 def main():
@@ -24,9 +19,7 @@ def main():
     if cap is None:
         return
 
-    detector = GestureDetector()
-
-    print("Camera + gesture detector running. Press 'q' to quit.")
+    print("Camera opened successfully. Press 'q' to quit.")
     frame_fail_count = 0
 
     while True:
@@ -40,26 +33,11 @@ def main():
                 break
             time.sleep(0.1)
             continue
+
         frame_fail_count = 0
 
-        gesture, pose_landmarks = detector.detect(frame)
+        cv2.imshow("Webcam test", frame)
 
-        # Draw pose for debugging
-        if pose_landmarks:
-            mp_drawing.draw_landmarks(
-                frame,
-                pose_landmarks,
-                mp_pose.POSE_CONNECTIONS
-            )
-
-        cv2.putText(frame, f"gesture: {gesture}",
-                    (10, 30), cv2.FONT_HERSHEY_SIMPLEX,
-                    1, (0, 0, 255), 2, cv2.LINE_AA)
-
-        if gesture == "RAISED":
-            print("Hand raised detected!")
-
-        cv2.imshow("Gesture detection (Mac)", frame)
         if cv2.waitKey(1) & 0xFF == ord('q'):
             break
 
@@ -68,4 +46,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
