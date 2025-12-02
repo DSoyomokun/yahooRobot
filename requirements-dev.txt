@@ -6,7 +6,8 @@ Flask>=2.3.0
 Flask-SocketIO>=5.3.0
 
 # Computer Vision (optional - uncomment if using cameras)
-# opencv-python>=4.8.0
+opencv-python>=4.8.0
+mediapipe>=0.10.0
 
 # Sensor Libraries (mock versions for development)
 # smbus2>=0.4.2  # Only works on Linux with I2C
