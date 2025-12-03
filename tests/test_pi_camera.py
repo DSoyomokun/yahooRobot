@@ -29,11 +29,9 @@ def main():
         # 🔹 Optionally only show every 2nd or 3rd frame
         if frame_count % 2 != 0:
             continue
-        
+
         gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
         cv2.imshow("Pi Camera Test (/dev/video0) - Grayscale", gray)
-
-        cv2.imshow("Pi Camera Test (/dev/video0)", frame)
 
         if cv2.waitKey(1) & 0xFF == ord('q'):
             break
