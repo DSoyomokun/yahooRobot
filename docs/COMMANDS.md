@@ -26,8 +26,11 @@ gitup
 # Deploy code to robot (use on GoPiGo WiFi)
 deploypi
 
-# SSH into robot
+# SSH into robot (normal, no GUI)
 robopi
+
+# SSH into robot with X11 forwarding (for GUI apps like cv2.imshow)
+robopi_x
 
 # Full sync - gitup + deploypi (ONLY when online)
 fullsync
@@ -54,6 +57,26 @@ python3 main.py test mac
 - `gitup` needs internet (use on normal WiFi)
 - `deploypi` works offline (use on GoPiGo WiFi)
 - You might want to pull without deploying, or deploy without pulling
+
+**📺 GUI Applications (X11 Forwarding)**
+
+For apps that show windows (like `cv2.imshow`), use `robopi_x` instead of `robopi`:
+
+1. **Install XQuartz on Mac** (if not already installed):
+   ```bash
+   brew install --cask xquartz
+   ```
+
+2. **Open XQuartz** (keep it running)
+
+3. **Use `robopi_x` for GUI apps:**
+   ```bash
+   robopi_x                    # SSH with X11 forwarding
+   echo $DISPLAY              # Verify (should show localhost:10.0)
+   python3 main.py test pi_camera  # Run camera test with GUI
+   ```
+
+Windows will appear on your Mac via XQuartz.
 
 See [Robot Development Workflow](ROBOT_DEV_WORKFLOW.md) for full details.
 
@@ -108,6 +131,9 @@ python3 main.py test camera
 
 # Run gesture test (alias for mac)
 python3 main.py test gesture
+
+# Run Pi camera test (on Raspberry Pi)
+python3 main.py test pi_camera
 ```
 
 ---

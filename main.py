@@ -33,6 +33,7 @@ def run_test(test_name):
         'mac': 'tests/test_gesture_mac.py',
         'camera': 'scripts/camera_test.py',
         'gesture': 'tests/test_gesture_mac.py',  # alias
+        'pi_camera': 'tests/test_pi_camera.py',  # Pi camera test
     }
     
     if test_name not in test_scripts:

@@ -22,16 +22,24 @@ GoPiGo OS creates its own **offline local network**.
 
 Open Terminal on your laptop:
 
-**💡 Quick Command:** Use the `robopi` alias:
+**💡 Quick Commands:**
 
 ```bash
+# Normal SSH (no GUI)
 robopi
+
+# SSH with X11 forwarding (for GUI apps like cv2.imshow)
+robopi_x
 ```
 
-**Manual method:**
+**Manual methods:**
 
 ```bash
+# Normal SSH
 ssh pi@10.10.10.10
+
+# SSH with X11 forwarding
+ssh -Y pi@10.10.10.10
 ```
 
 Credentials:
@@ -44,6 +52,22 @@ If successful, you'll see something like:
 pi@GoPiGo:~ $
 
 You are now inside the robot via SSH.
+
+**📺 For GUI Applications (cv2.imshow, etc.):**
+
+If you need to see windows (like camera feeds), use `robopi_x` instead of `robopi`:
+
+1. **Make sure XQuartz is running on your Mac** (open it from Spotlight)
+2. Use `robopi_x` to SSH with X11 forwarding
+3. Verify X11 is working: `echo $DISPLAY` (should show something like `localhost:10.0`)
+4. Run your GUI app - windows will appear on your Mac via XQuartz
+
+**Example:**
+```bash
+robopi_x                    # SSH with X11
+echo $DISPLAY              # Verify forwarding (should show localhost:10.0)
+python3 main.py test pi_camera  # Run camera test with GUI
+```
 
 ⸻
 
@@ -195,7 +219,8 @@ The robot only:
 ```bash
 gitup          # Pull latest from GitHub (use on normal WiFi)
 deploypi       # Sync code to robot (use on GoPiGo WiFi)
-robopi         # SSH into robot
+robopi         # SSH into robot (normal, no GUI)
+robopi_x       # SSH into robot with X11 forwarding (for GUI apps)
 fullsync       # Do both gitup + deploypi (ONLY when online)
 ```
 
