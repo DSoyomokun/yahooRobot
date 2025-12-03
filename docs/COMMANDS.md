@@ -26,8 +26,11 @@ gitup
 # Deploy code to robot (use on GoPiGo WiFi)
 deploypi
 
-# SSH into robot (with X11 forwarding for GUI apps)
+# SSH into robot (normal, no GUI)
 robopi
+
+# SSH into robot with X11 forwarding (for GUI apps like cv2.imshow)
+robopi_x
 
 # Full sync - gitup + deploypi (ONLY when online)
 fullsync
@@ -57,7 +60,7 @@ python3 main.py test mac
 
 **📺 GUI Applications (X11 Forwarding)**
 
-The `robopi` command always uses X11 forwarding, so GUI apps work automatically:
+For apps that show windows (like `cv2.imshow`), use `robopi_x` instead of `robopi`:
 
 1. **Install XQuartz on Mac** (if not already installed):
    ```bash
@@ -66,9 +69,9 @@ The `robopi` command always uses X11 forwarding, so GUI apps work automatically:
 
 2. **Open XQuartz** (keep it running)
 
-3. **Use `robopi` - X11 is always enabled:**
+3. **Use `robopi_x` for GUI apps:**
    ```bash
-   robopi                      # SSH with X11 forwarding
+   robopi_x                    # SSH with X11 forwarding
    echo $DISPLAY              # Verify (should show localhost:10.0)
    python3 main.py test pi_camera  # Run camera test with GUI
    ```
