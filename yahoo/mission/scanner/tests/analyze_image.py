@@ -7,10 +7,10 @@ import sys
 from pathlib import Path
 import numpy as np
 
-sys.path.insert(0, str(Path(__file__).parent.parent.parent))
+sys.path.insert(0, str(Path(__file__).parent.parent.parent.parent.parent))
 
-from robot_scanner.bubble_detector import BubbleDetector
-from robot_scanner.name_reader import NameReader
+from yahoo.mission.scanner.bubble_detector import BubbleDetector
+from yahoo.mission.scanner.name_reader import NameReader
 
 def analyze_image(image_path: str):
     """Analyze image in detail."""

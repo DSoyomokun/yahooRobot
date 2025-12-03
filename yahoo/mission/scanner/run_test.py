@@ -9,7 +9,7 @@ from pathlib import Path
 
 # Add project root to path
 script_dir = Path(__file__).parent
-project_root = script_dir.parent
+project_root = script_dir.parent.parent.parent.parent
 sys.path.insert(0, str(project_root))
 
 def print_header(text):
@@ -23,7 +23,7 @@ def test_camera():
     print_header("Testing with Camera")
     print("Place your test paper in front of the camera...")
     
-    from robot_scanner.tests.test_mac import test_with_camera
+    from yahoo.mission.scanner.tests.test_mac import test_with_camera
     return test_with_camera()
 
 def quick_capture():
@@ -31,7 +31,7 @@ def quick_capture():
     print_header("Quick Capture")
     print("Capturing image in 2 seconds...")
     
-    from robot_scanner.tests.test_mac import quick_capture
+    from yahoo.mission.scanner.tests.test_mac import quick_capture
     return quick_capture()
 
 def test_image(image_path=None):
@@ -50,7 +50,7 @@ def test_image(image_path=None):
     
     print_header(f"Testing with Image: {image_path}")
     
-    from robot_scanner.tests.test_mac import test_with_image
+    from yahoo.mission.scanner.tests.test_mac import test_with_image
     return test_with_image(image_path)
 
 def debug_scan():
@@ -58,8 +58,8 @@ def debug_scan():
     print_header("Debug Visualization")
     print("This will show what the scanner detects...")
     
-    from robot_scanner.tests.debug_scanner import debug_scan
-    from robot_scanner import capture_image
+    from yahoo.mission.scanner.tests.debug_scanner import debug_scan
+    from yahoo.mission.scanner import capture_image
     from pathlib import Path
     
     debug_dir = script_dir / "tests" / "debug_output"
@@ -153,7 +153,7 @@ def main():
         elif command == "all":
             run_all()
         else:
-            print("Usage: python3 robot_scanner/run_test.py [command]")
+            print("Usage: python3 yahoo/mission/scanner/run_test.py [command]")
             print("\nCommands:")
             print("  camera    - Test with camera")
             print("  capture   - Quick capture")

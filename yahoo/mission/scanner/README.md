@@ -5,7 +5,7 @@ Self-contained test paper scanning module for the Yahoo Robot.
 ## Structure
 
 ```
-robot_scanner/
+yahoo/mission/scanner/
 ├── __init__.py           # Module exports
 ├── scanner.py            # Main scanner orchestrator
 ├── bubble_detector.py    # Multiple-choice bubble detection
@@ -42,7 +42,7 @@ sudo apt install tesseract-ocr
 
 ### 3. Create Answer Key
 
-Create `answer_key.json` in project root or `robot_scanner/`:
+Create `answer_key.json` in project root or `yahoo/mission/scanner/`:
 
 ```json
 {
@@ -62,32 +62,32 @@ Create `answer_key.json` in project root or `robot_scanner/`:
 
 ```bash
 # Interactive menu
-python3 robot_scanner/run_test.py
+python3 yahoo/mission/scanner/run_test.py
 
 # Or use commands directly
-python3 robot_scanner/run_test.py camera    # Test with camera
-python3 robot_scanner/run_test.py capture   # Quick capture
-python3 robot_scanner/run_test.py image     # Test with image
-python3 robot_scanner/run_test.py debug     # Debug visualization
-python3 robot_scanner/run_test.py db        # View database
-python3 robot_scanner/run_test.py all       # Run all tests
+python3 yahoo/mission/scanner/run_test.py camera    # Test with camera
+python3 yahoo/mission/scanner/run_test.py capture   # Quick capture
+python3 yahoo/mission/scanner/run_test.py image     # Test with image
+python3 yahoo/mission/scanner/run_test.py debug     # Debug visualization
+python3 yahoo/mission/scanner/run_test.py db        # View database
+python3 yahoo/mission/scanner/run_test.py all       # Run all tests
 ```
 
 **Or use shell script (Mac/Linux):**
 ```bash
-./robot_scanner/run_test.sh
+./yahoo/mission/scanner/run_test.sh
 ```
 
 **Direct test scripts:**
 ```bash
 # Test with camera
-python3 robot_scanner/tests/test_mac.py --camera
+python3 yahoo/mission/scanner/tests/test_mac.py --camera
 
 # Test with saved image
-python3 robot_scanner/tests/test_mac.py --image path/to/image.jpg
+python3 yahoo/mission/scanner/tests/test_mac.py --image path/to/image.jpg
 
 # Debug visualization
-python3 robot_scanner/tests/debug_scanner.py --camera
+python3 yahoo/mission/scanner/tests/debug_scanner.py --camera
 ```
 
 ## Usage
@@ -95,7 +95,7 @@ python3 robot_scanner/tests/debug_scanner.py --camera
 ### Basic Usage
 
 ```python
-from robot_scanner import RobotScanner
+from yahoo.mission.scanner import RobotScanner
 
 # Initialize scanner
 scanner = RobotScanner(camera_index=0)
@@ -120,7 +120,7 @@ scanner.release()
 ### Standalone Camera Capture
 
 ```python
-from robot_scanner import capture_image
+from yahoo.mission.scanner import capture_image
 
 # Capture and save image
 image_path = capture_image(camera_index=0, save_path="scan.jpg")
@@ -150,7 +150,7 @@ Edit `config.py` to choose your database:
 **SQLite (Default - No setup required):**
 ```python
 DATABASE_TYPE = "sqlite"
-SQLITE_DB_PATH = "robot_scanner/test_results.db"
+SQLITE_DB_PATH = "yahoo/mission/scanner/test_results.db"
 ```
 
 **PostgreSQL:**
@@ -193,7 +193,7 @@ MONGODB_CONFIG = {
 **JSON File (Simple testing):**
 ```python
 DATABASE_TYPE = "json"
-JSON_FILE_PATH = "robot_scanner/test_results.json"
+JSON_FILE_PATH = "yahoo/mission/scanner/test_results.json"
 ```
 
 ## Pipeline
@@ -224,6 +224,6 @@ JSON_FILE_PATH = "robot_scanner/test_results.json"
 ## Debug Output
 
 Debug scripts save visualization images to:
-- `robot_scanner/tests/debug_output/visualization.jpg` - Full detection overlay
-- `robot_scanner/tests/debug_output/name_region.jpg` - Extracted name region
+- `yahoo/mission/scanner/tests/debug_output/visualization.jpg` - Full detection overlay
+- `yahoo/mission/scanner/tests/debug_output/name_region.jpg` - Extracted name region
 

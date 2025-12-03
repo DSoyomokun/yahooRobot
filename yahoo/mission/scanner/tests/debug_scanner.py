@@ -7,12 +7,12 @@ import sys
 from pathlib import Path
 import numpy as np
 
-# Add parent directory to path
-sys.path.insert(0, str(Path(__file__).parent.parent.parent))
+# Add project root to path
+sys.path.insert(0, str(Path(__file__).parent.parent.parent.parent.parent))
 
-from robot_scanner import RobotScanner, capture_image
-from robot_scanner.bubble_detector import BubbleDetector
-from robot_scanner.name_reader import NameReader
+from yahoo.mission.scanner import RobotScanner, capture_image
+from yahoo.mission.scanner.bubble_detector import BubbleDetector
+from yahoo.mission.scanner.name_reader import NameReader
 
 def debug_scan(image_path: str):
     """Debug scan with visualization."""

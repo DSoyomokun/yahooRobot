@@ -1,4 +1,9 @@
 """Mission control - deliver, wait, collect behaviors"""
 
-__all__ = []
+from .scanner import RobotScanner, capture_image
+
+__all__ = [
+    'RobotScanner',
+    'capture_image',
+]
 

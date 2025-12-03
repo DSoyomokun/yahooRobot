@@ -85,7 +85,7 @@ Check contents:
 
 ls
 
-You should see folders such as yahoo/, tests/, robot_scanner/, etc.
+You should see folders such as yahoo/, tests/, etc.
 
 ⸻
 

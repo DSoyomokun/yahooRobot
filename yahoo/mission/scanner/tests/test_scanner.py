@@ -7,10 +7,10 @@ import logging
 import sys
 from pathlib import Path
 
-# Add parent directory to path to import robot_scanner
-sys.path.insert(0, str(Path(__file__).parent.parent.parent))
+# Add project root to path to import yahoo.mission.scanner
+sys.path.insert(0, str(Path(__file__).parent.parent.parent.parent.parent))
 
-from robot_scanner import RobotScanner, capture_image
+from yahoo.mission.scanner import RobotScanner, capture_image
 
 # Configure logging
 logging.basicConfig(

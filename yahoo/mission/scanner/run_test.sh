@@ -4,7 +4,7 @@
 # Makes testing easy on Mac
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+PROJECT_ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd)"
 
 cd "$PROJECT_ROOT"
 
@@ -43,13 +43,13 @@ show_menu() {
 # Test with camera
 test_camera() {
     echo -e "\n${GREEN}📸 Testing with camera...${NC}"
-    python3 robot_scanner/tests/test_mac.py --camera
+    python3 yahoo/mission/scanner/tests/test_mac.py --camera
 }
 
 # Quick capture
 quick_capture() {
     echo -e "\n${GREEN}📸 Quick capture...${NC}"
-    python3 robot_scanner/tests/test_mac.py --capture
+    python3 yahoo/mission/scanner/tests/test_mac.py --capture
     echo -e "\n${BLUE}💡 Image saved! Test it with option 3.${NC}"
 }
 
@@ -58,18 +58,18 @@ test_image() {
     echo -e "\n${GREEN}🖼️  Testing with image...${NC}"
     
     # Check for captured images
-    if [ -f "robot_scanner/tests/captured_paper.jpg" ]; then
-        echo "Found: robot_scanner/tests/captured_paper.jpg"
+    if [ -f "yahoo/mission/scanner/tests/captured_paper.jpg" ]; then
+        echo "Found: yahoo/mission/scanner/tests/captured_paper.jpg"
         read -p "Use this image? [y/n]: " use_captured
         if [ "$use_captured" = "y" ]; then
-            python3 robot_scanner/tests/test_mac.py --image robot_scanner/tests/captured_paper.jpg
+            python3 yahoo/mission/scanner/tests/test_mac.py --image yahoo/mission/scanner/tests/captured_paper.jpg
             return
         fi
     fi
     
     read -p "Enter image path: " image_path
     if [ -f "$image_path" ]; then
-        python3 robot_scanner/tests/test_mac.py --image "$image_path"
+        python3 yahoo/mission/scanner/tests/test_mac.py --image "$image_path"
     else
         echo -e "${RED}❌ Image not found: $image_path${NC}"
     fi
@@ -78,21 +78,21 @@ test_image() {
 # Debug visualization
 debug_scan() {
     echo -e "\n${GREEN}🔍 Debug visualization...${NC}"
-    python3 robot_scanner/tests/debug_scanner.py --camera
-    echo -e "\n${BLUE}💡 Check robot_scanner/tests/debug_output/ for visualization images${NC}"
+    python3 yahoo/mission/scanner/tests/debug_scanner.py --camera
+    echo -e "\n${BLUE}💡 Check yahoo/mission/scanner/tests/debug_output/ for visualization images${NC}"
 }
 
 # View database
 view_database() {
     echo -e "\n${GREEN}📊 Viewing database results...${NC}"
     
-    if [ -f "robot_scanner/test_results.db" ]; then
+    if [ -f "yahoo/mission/scanner/test_results.db" ]; then
         python3 -c "
 import sqlite3
 import json
 from datetime import datetime
 
-conn = sqlite3.connect('robot_scanner/test_results.db')
+conn = sqlite3.connect('yahoo/mission/scanner/test_results.db')
 conn.row_factory = sqlite3.Row
 cursor = conn.cursor()
 
@@ -122,8 +122,8 @@ run_all() {
     quick_capture
     
     echo -e "\n2. Testing with captured image..."
-    if [ -f "robot_scanner/tests/captured_paper.jpg" ]; then
-        python3 robot_scanner/tests/test_mac.py --image robot_scanner/tests/captured_paper.jpg
+    if [ -f "yahoo/mission/scanner/tests/captured_paper.jpg" ]; then
+        python3 yahoo/mission/scanner/tests/test_mac.py --image yahoo/mission/scanner/tests/captured_paper.jpg
     fi
     
     echo -e "\n3. Viewing results..."
