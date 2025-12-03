@@ -1,6 +1,12 @@
 import cv2
 import time
+import sys
+from pathlib import Path
 import mediapipe as mp
+
+# Add project root to path to import yahoo module
+sys.path.insert(0, str(Path(__file__).parent.parent))
+
 from yahoo.sense.gesture import GestureDetector
 
 mp_drawing = mp.solutions.drawing_utils
@@ -20,8 +26,17 @@ def open_mac_camera(device_index=1, width=640, height=480):
     return cap
 
 def main():
-    cap = open_mac_camera()
+    # Try device index 0 first, then 1
+    cap = None
+    for device_index in [0, 1]:
+        print(f"Trying camera device {device_index}...")
+        cap = open_mac_camera(device_index=device_index)
+        if cap is not None:
+            print(f"Successfully opened camera at device {device_index}")
+            break
+    
     if cap is None:
+        print("Error: Could not open any camera. Make sure a camera is connected.")
         return
 
     detector = GestureDetector()
