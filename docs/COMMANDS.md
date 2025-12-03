@@ -6,9 +6,56 @@ Quick reference guide for running the Yahoo Robot and its test scripts.
 
 ## 📋 Table of Contents
 
+- [Development Aliases](#development-aliases) ⚡
 - [Robot Commands](#robot-commands)
 - [Test Commands](#test-commands)
 - [Quick Examples](#quick-examples)
+
+---
+
+## ⚡ Development Aliases
+
+**Quick setup:** Run `./scripts/setup_aliases.sh` to install these aliases automatically.
+
+### Available Aliases
+
+```bash
+# Pull latest from GitHub (use on normal WiFi)
+gitup
+
+# Deploy code to robot (use on GoPiGo WiFi)
+deploypi
+
+# SSH into robot
+robopi
+
+# Full sync - gitup + deploypi (ONLY when online)
+fullsync
+```
+
+### Workflow Example
+
+```bash
+# Step 1: On normal WiFi - pull latest updates
+gitup
+
+# Step 2: Connect to GoPiGo WiFi, then deploy
+deploypi
+
+# Step 3: SSH into robot
+robopi
+
+# Step 4: Run your code
+cd ~/yahooRobot
+python3 main.py test mac
+```
+
+**💡 Why separate commands?**
+- `gitup` needs internet (use on normal WiFi)
+- `deploypi` works offline (use on GoPiGo WiFi)
+- You might want to pull without deploying, or deploy without pulling
+
+See [Robot Development Workflow](ROBOT_DEV_WORKFLOW.md) for full details.
 
 ---
 

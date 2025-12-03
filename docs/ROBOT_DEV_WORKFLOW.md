@@ -22,15 +22,24 @@ GoPiGo OS creates its own **offline local network**.
 
 Open Terminal on your laptop:
 
+**💡 Quick Command:** Use the `robopi` alias:
+
+```bash
+robopi
+```
+
+**Manual method:**
+
 ```bash
 ssh pi@10.10.10.10
+```
 
 Credentials:
 
 username: pi
 password: robots1234
 
-If successful, you’ll see something like:
+If successful, you'll see something like:
 
 pi@GoPiGo:~ $
 
@@ -95,7 +104,7 @@ Step A — Work Normally on Your Mac (with internet)
 
 Your local repo:
 
-/Users/<yourname>/yahooRobot
+/Users/DSoyomokun/yahooRobot
 
 You edit, commit, document, push:
 
@@ -105,6 +114,14 @@ git push
 
 This is your main source of truth.
 
+**💡 Quick Command:** Use the `gitup` alias to pull latest from GitHub:
+
+```bash
+gitup
+```
+
+This automatically: commits local changes, pulls remote updates, and pushes back.
+
 ⸻
 
 Step B — Sync Code to the Robot (GoPiGo WiFi, offline mode)
@@ -113,7 +130,15 @@ Since GoPiGo OS is offline, the Pi cannot git pull.
 
 Instead, we sync laptop → Pi.
 
-Recommended 🏆 (fast, safe, incremental)
+**🚀 Quick Command:** Use the `deploypi` alias:
+
+```bash
+deploypi
+```
+
+This syncs your local repo to the robot with helpful status messages.
+
+**Manual method (if needed):**
 
 rsync -av --delete ~/yahooRobot/ pi@10.10.10.10:~/yahooRobot/
 
@@ -132,14 +157,21 @@ scp -r ~/yahooRobot pi@10.10.10.10:~/
 
 Repeat:
 	1.	Write / test code locally (with YouTube, docs, GPT, etc.)
-	2.	Connect laptop to GoPiGo WiFi
-	3.	Sync repo → Pi (rsync)
-	4.	SSH into robot
-	5.	Run your scripts
-	6.	Observe robot behavior
-	7.	Iterate
+	2.	On normal WiFi: `gitup` (pull latest from GitHub)
+	3.	Connect laptop to GoPiGo WiFi
+	4.	`deploypi` (sync repo → Pi)
+	5.	`robopi` (SSH into robot)
+	6.	Run your scripts: `python3 main.py test mac` or `python3 main.py run`
+	7.	Observe robot behavior
+	8.	Iterate
 
 This is exactly how robotics labs + drone teams do work.
+
+**💡 Pro Tip:** Keep `gitup` and `deploypi` separate because:
+	•	`gitup` needs internet (use on normal WiFi)
+	•	`deploypi` works offline (use on GoPiGo WiFi)
+	•	You might want to pull updates without deploying
+	•	You might want to deploy without pulling
 
 ⸻
 
@@ -158,7 +190,18 @@ The robot only:
 
 🔨 9. Useful Commands Cheat Sheet
 
-SSH
+**🚀 Quick Aliases (Recommended)**
+
+```bash
+gitup          # Pull latest from GitHub (use on normal WiFi)
+deploypi       # Sync code to robot (use on GoPiGo WiFi)
+robopi         # SSH into robot
+fullsync       # Do both gitup + deploypi (ONLY when online)
+```
+
+**Manual Commands**
+
+SSH into robot
 
 ssh pi@10.10.10.10
 
