@@ -1,48 +1,20 @@
 import cv2
-import time
+from typing import Optional
+from yahoo.config.cameras import CameraConfig
 
-def open_mac_camera(device_index=1, width=640, height=480):
-    cap = cv2.VideoCapture(device_index, cv2.CAP_AVFOUNDATION)
+
+def open_camera(cfg: CameraConfig) -> Optional[cv2.VideoCapture]:
+    """
+    Open a camera using a CameraConfig.
+    Returns an opened cv2.VideoCapture or None if it fails.
+    """
+    cap = cv2.VideoCapture(cfg.index)
 
     if not cap.isOpened():
-        print("Error: Could not open camera.")
+        print(f"[ERROR] Could not open camera '{cfg.name}' at index {cfg.index}")
         return None
 
-    cap.set(cv2.CAP_PROP_FRAME_WIDTH, width)
-    cap.set(cv2.CAP_PROP_FRAME_HEIGHT, height)
+    cap.set(cv2.CAP_PROP_FRAME_WIDTH, cfg.width)
+    cap.set(cv2.CAP_PROP_FRAME_HEIGHT, cfg.height)
 
-    time.sleep(0.5)  # let camera warm up
     return cap
-
-def main():
-    cap = open_mac_camera()
-    if cap is None:
-        return
-
-    print("Camera opened successfully. Press 'q' to quit.")
-    frame_fail_count = 0
-
-    while True:
-        ret, frame = cap.read()
-        if not ret:
-            frame_fail_count += 1
-            if frame_fail_count == 1:
-                print("Failed to read frame from camera. Retrying...")
-            if frame_fail_count > 10:
-                print("Failed to read frames after multiple attempts.")
-                break
-            time.sleep(0.1)
-            continue
-
-        frame_fail_count = 0
-
-        cv2.imshow("Webcam test", frame)
-
-        if cv2.waitKey(1) & 0xFF == ord('q'):
-            break
-
-    cap.release()
-    cv2.destroyAllWindows()
-
-if __name__ == "__main__":
-    main()
