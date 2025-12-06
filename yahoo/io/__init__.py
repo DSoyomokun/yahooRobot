@@ -1,4 +1,10 @@
-"""IO modules - feeder, collector, LEDs, buzzer"""
+"""IO modules - feeder, collector, LEDs, buzzer, camera"""
 
-__all__ = []
+from .camera import PiCam
+from .leds import LEDController
+
+__all__ = [
+    'PiCam',
+    'LEDController',
+]
 

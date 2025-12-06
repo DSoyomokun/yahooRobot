@@ -26,6 +26,14 @@ def test_camera():
     from yahoo.mission.scanner.tests.test_mac import test_with_camera
     return test_with_camera()
 
+def test_capture_preview():
+    """Test camera with preview and countdown."""
+    print_header("Camera Capture with Preview")
+    print("This will show live camera feed with countdown before capture")
+    
+    from yahoo.mission.scanner.tests.test_capture_with_preview import main
+    return main()
+
 def quick_capture():
     """Quick capture."""
     print_header("Quick Capture")
@@ -126,10 +134,11 @@ def show_menu():
     print("\nChoose a test option:")
     print("  1) Test with camera (live capture)")
     print("  2) Quick capture (save image only)")
-    print("  3) Test with saved image")
-    print("  4) Debug visualization (see what's detected)")
-    print("  5) View database results")
-    print("  6) Run all tests")
+    print("  3) Camera with preview & countdown (Mac/Pi)")
+    print("  4) Test with saved image")
+    print("  5) Debug visualization (see what's detected)")
+    print("  6) View database results")
+    print("  7) Run all tests")
     print("  0) Exit")
     print()
 
@@ -146,6 +155,8 @@ def main():
         elif command == "image":
             image_path = sys.argv[2] if len(sys.argv) > 2 else None
             test_image(image_path)
+        elif command == "preview" or command == "capture-preview":
+            test_capture_preview()
         elif command == "debug":
             debug_scan()
         elif command == "db" or command == "database":
@@ -155,12 +166,13 @@ def main():
         else:
             print("Usage: python3 yahoo/mission/scanner/run_test.py [command]")
             print("\nCommands:")
-            print("  camera    - Test with camera")
-            print("  capture   - Quick capture")
-            print("  image     - Test with image (optional: path)")
-            print("  debug     - Debug visualization")
-            print("  db        - View database")
-            print("  all       - Run all tests")
+            print("  camera         - Test with camera")
+            print("  capture        - Quick capture")
+            print("  preview        - Camera with preview & countdown (Mac/Pi)")
+            print("  image          - Test with image (optional: path)")
+            print("  debug          - Debug visualization")
+            print("  db             - View database")
+            print("  all            - Run all tests")
             print("\nOr run without arguments for interactive menu")
             sys.exit(1)
     else:
@@ -168,19 +180,21 @@ def main():
         while True:
             show_menu()
             try:
-                choice = input("Enter choice [0-6]: ").strip()
+                choice = input("Enter choice [0-7]: ").strip()
                 
                 if choice == "1":
                     test_camera()
                 elif choice == "2":
                     quick_capture()
                 elif choice == "3":
-                    test_image()
+                    test_capture_preview()
                 elif choice == "4":
-                    debug_scan()
+                    test_image()
                 elif choice == "5":
-                    view_database()
+                    debug_scan()
                 elif choice == "6":
+                    view_database()
+                elif choice == "7":
                     run_all()
                 elif choice == "0":
                     print("\n👋 Goodbye!")
