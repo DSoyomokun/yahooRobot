@@ -6,7 +6,7 @@ import argparse
 
 from yahoo.config.cameras import CSI_CAMERA, USB_CAMERA
 from yahoo.sense.camera import open_camera
-from yahoo.sense.gesture import GestureDetector  # your existing detector
+from yahoo.sense.gesture import GestureDetector
 
 
 LOG_DIR = "logs"
@@ -30,6 +30,11 @@ def main():
         choices=["csi", "usb"],
         default="csi",
         help="Which camera to use: 'csi' (/dev/video0) or 'usb' (/dev/video1).",
+    )
+    parser.add_argument(
+        "--debug",
+        action="store_true",
+        help="Print raw debug info for thresholds & tuning.",
     )
     args = parser.parse_args()
 
@@ -59,9 +64,12 @@ def main():
                 continue
 
             frame_idx += 1
-            gesture, _ = detector.detect(frame)
+
+            # ✅ Detection happens HERE (correct place)
+            gesture, pose_landmarks = detector.detect(frame)
             now = time.time()
 
+            # ✅ Event logging
             if gesture != "NONE" and (
                 gesture != last_gesture or (now - last_event_time) > min_event_interval
             ):
@@ -74,10 +82,25 @@ def main():
                 last_gesture = gesture
                 last_event_time = now
 
+            # ✅ Debug output (only when --debug is passed)
+            if args.debug and pose_landmarks is not None:
+                lm = pose_landmarks.landmark
+
+                RW = lm[16]  # RIGHT_WRIST
+                RS = lm[12]  # RIGHT_SHOULDER
+                LE = lm[13]  # LEFT_ELBOW
+
+                print(
+                    f"[DEBUG] RW.y={RW.y:.3f}, RS.y={RS.y:.3f}, "
+                    f"vis(RW)={RW.visibility:.2f}, "
+                    f"gesture={gesture}"
+                )
+
             time.sleep(0.02)
 
     except KeyboardInterrupt:
         print("\n[INFO] Stopped by user (Ctrl+C).")
+
     finally:
         cap.release()
         log_file.close()

@@ -156,8 +156,14 @@ python3 main.py run --simulate --debug
 ### On Raspberry Pi
 
 ```bash
-# Test camera (when test_pi.py exists)
-python3 main.py test pi
+# Test gesture detection with camera
+python3 -m tests.test_gesture_pi --cam csi
+
+# Test with USB camera
+python3 -m tests.test_gesture_pi --cam usb
+
+# Test with debug output (for tuning thresholds)
+python3 -m tests.test_gesture_pi --cam csi --debug
 
 # Run robot with hardware
 python3 main.py run
