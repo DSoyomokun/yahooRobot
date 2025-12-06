@@ -1,44 +1,60 @@
 import cv2
+import argparse
+from yahoo.config.cameras import CSI_CAMERA, USB_CAMERA
+from yahoo.sense.camera import open_camera
+
 
 def main():
-    cap = cv2.VideoCapture(0)
+    parser = argparse.ArgumentParser(description="Test CSI or USB camera on Pi.")
+    parser.add_argument(
+        "--cam",
+        choices=["csi", "usb"],
+        default="csi",
+        help="Which camera to test: 'csi' (/dev/video0) or 'usb' (/dev/video1).",
+    )
+    parser.add_argument(
+        "--headless",
+        action="store_true",
+        help="Run without cv2.imshow (print only).",
+    )
+    args = parser.parse_args()
 
-    # 🔹 Lower resolution = less data to send over X11
-    cap.set(cv2.CAP_PROP_FRAME_WIDTH, 320)
-    cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 240)
+    cfg = CSI_CAMERA if args.cam == "csi" else USB_CAMERA
+    print(f"[INFO] Opening {cfg.name} at index {cfg.index}")
 
-    # Optional: cap FPS (not all drivers obey this)
-    cap.set(cv2.CAP_PROP_FPS, 10)
-
-    if not cap.isOpened():
-        print("Error: Could not open /dev/video0")
+    cap = open_camera(cfg)
+    if cap is None:
         return
 
-    print("Camera opened. Press 'q' in the window to quit.")
+    print("[INFO] Camera opened. Press 'q' in the window to quit (non-headless mode).")
 
-    frame_count = 0
+    frame_idx = 0
 
     while True:
         ret, frame = cap.read()
         if not ret:
-            print("Failed to grab frame")
+            print("[WARN] Failed to grab frame")
             break
 
-        frame_count += 1
+        frame_idx += 1
 
-        # 🔹 Optionally only show every 2nd or 3rd frame
-        if frame_count % 2 != 0:
+        if args.headless:
+            if frame is not None:
+                h, w = frame.shape[:2]
+                if frame_idx % 10 == 0:
+                    print(f"[{cfg.name}] frame {frame_idx}: {w}x{h}")
             continue
 
-        gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-        cv2.imshow("Pi Camera Test (/dev/video0) - Grayscale", gray)
+        cv2.imshow(f"Camera test ({cfg.name})", frame)
 
         if cv2.waitKey(1) & 0xFF == ord('q'):
             break
 
     cap.release()
-    cv2.destroyAllWindows()
-    print("Done.")
+    if not args.headless:
+        cv2.destroyAllWindows()
+    print("[INFO] Done.")
+
 
 if __name__ == "__main__":
     main()
