@@ -4,8 +4,16 @@ Orchestrates the entire scanning pipeline.
 """
 import cv2
 import logging
-from typing import Optional, Dict
+import numpy as np
+from typing import Optional, Dict, Union
 from datetime import datetime
+from pathlib import Path
+
+try:
+    from PIL import Image
+    PIL_AVAILABLE = True
+except ImportError:
+    PIL_AVAILABLE = False
 
 from .bubble_detector import BubbleDetector
 from .name_reader import NameReader
@@ -103,43 +111,99 @@ class RobotScanner:
         else:
             raise Exception("Camera failed to capture image")
     
-    def scan_paper(self, image: Optional[cv2.typing.MatLike] = None) -> Optional[Dict]:
+    def _normalize_image(self, image: Union[np.ndarray, Image.Image, str, Path]) -> Optional[np.ndarray]:
         """
-        Complete scanning pipeline.
+        Normalize input image to numpy array (BGR format).
         
         Args:
-            image: Optional pre-captured image (if None, captures from camera)
+            image: Can be numpy array, PIL Image, file path, or Path object
+            
+        Returns:
+            numpy array in BGR format or None if failed
+        """
+        if image is None:
+            return None
+        
+        # If it's already a numpy array
+        if isinstance(image, np.ndarray):
+            # Ensure it's BGR (3 channels)
+            if len(image.shape) == 2:
+                image = cv2.cvtColor(image, cv2.COLOR_GRAY2BGR)
+            elif len(image.shape) == 3 and image.shape[2] == 4:
+                # RGBA to BGR
+                image = cv2.cvtColor(image, cv2.COLOR_RGBA2BGR)
+            return image
+        
+        # If it's a PIL Image
+        if PIL_AVAILABLE and isinstance(image, Image.Image):
+            # Convert PIL to numpy (RGB)
+            img_array = np.array(image)
+            # Convert RGB to BGR for OpenCV
+            if len(img_array.shape) == 3:
+                img_array = cv2.cvtColor(img_array, cv2.COLOR_RGB2BGR)
+            return img_array
+        
+        # If it's a file path
+        if isinstance(image, (str, Path)):
+            path = Path(image)
+            if not path.exists():
+                logger.error(f"Image file not found: {path}")
+                return None
+            img = cv2.imread(str(path))
+            if img is None:
+                logger.error(f"Failed to load image: {path}")
+            return img
+        
+        logger.error(f"Unsupported image type: {type(image)}")
+        return None
+    
+    def scan_image(self, image: Union[np.ndarray, Image.Image, str, Path], store: bool = True) -> Optional[Dict]:
+        """
+        Complete scanning pipeline - accepts various image input types.
+        
+        Args:
+            image: Can be numpy array (BGR), PIL Image, file path, or Path object
+            store: If True, store results to database (default: True)
             
         Returns:
             Dictionary with scan results or None if failed
+            Format: {
+                'student_name': str,
+                'answers': {"1": "B", "2": "D", ...},
+                'score': float,
+                'total_questions': int,
+                'correct': int,
+                'incorrect': int,
+                'unanswered': int,
+                'percentage': float,
+                'scanned_at': str (ISO format)
+            }
         """
         try:
-            # Step 1: Capture image
-            if image is None:
-                logger.info("Capturing image from camera...")
-                image = self.capture_image()
+            # Normalize image input
+            img_array = self._normalize_image(image)
             
-            if image is None:
-                logger.error("Failed to capture image")
+            if img_array is None:
+                logger.error("Failed to normalize image")
                 return None
             
-            # Step 2: Extract student name
+            # Step 1: Extract student name
             logger.info("Extracting student name...")
-            student_name = self.name_reader.extract_name(image)
+            student_name = self.name_reader.extract_name(img_array)
             
-            # Step 3: Extract answers
+            # Step 2: Extract answers
             logger.info("Extracting answers from bubbles...")
-            answers = self.bubble_detector.extract_answers(image)
+            answers = self.bubble_detector.extract_answers(img_array)
             
             if not answers:
                 logger.error("Failed to extract answers")
                 return None
             
-            # Step 4: Auto grading pipeline
+            # Step 3: Auto grading pipeline
             logger.info("Grading test...")
             grading_result = self.grader.grade(answers)  # answers_dict format: {"1": "B", "2": "D", ...}
             
-            # Step 5: Prepare result data
+            # Step 4: Prepare result data
             result = {
                 'student_name': student_name or 'Unknown',
                 'answers': answers,
@@ -152,9 +216,10 @@ class RobotScanner:
                 'scanned_at': datetime.now().isoformat()
             }
             
-            # Step 6: Store results
-            logger.info("Storing results...")
-            self.storage.save_result(result)
+            # Step 5: Store results (if requested)
+            if store:
+                logger.info("Storing results...")
+                self.storage.save_result(result)
             
             logger.info(f"Scan complete: {student_name} - {result['percentage']:.1f}%")
             return result
@@ -162,6 +227,28 @@ class RobotScanner:
         except Exception as e:
             logger.error(f"Error in scan pipeline: {e}", exc_info=True)
             return None
+    
+    def scan_paper(self, image: Optional[cv2.typing.MatLike] = None, store: bool = True) -> Optional[Dict]:
+        """
+        Complete scanning pipeline (backward compatibility alias).
+        
+        Args:
+            image: Optional pre-captured image (if None, captures from camera)
+            store: If True, store results to database (default: True)
+            
+        Returns:
+            Dictionary with scan results or None if failed
+        """
+        # If no image provided, capture from camera
+        if image is None:
+            logger.info("Capturing image from camera...")
+            image = self.capture_image()
+            if image is None:
+                logger.error("Failed to capture image")
+                return None
+        
+        # Use scan_image for processing
+        return self.scan_image(image, store=store)
     
     def release(self):
         """Release camera resources."""

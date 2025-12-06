@@ -37,6 +37,8 @@ class Storage:
                 self._init_mysql(**kwargs)
             elif self.db_type == "mongodb":
                 self._init_mongodb(**kwargs)
+            elif self.db_type == "supabase":
+                self._init_supabase(**kwargs)
             elif self.db_type == "json":
                 self._init_json(**kwargs)
             else:
@@ -178,6 +180,30 @@ class Storage:
         except ImportError:
             raise ImportError("pymongo not installed. Install with: pip install pymongo")
     
+    def _init_supabase(self, url: Optional[str] = None, key: Optional[str] = None, 
+                       table: str = "test_results", **kwargs):
+        """Initialize Supabase database."""
+        try:
+            from supabase import create_client, Client
+            
+            if url is None or key is None:
+                # Try to get from environment or config
+                import os
+                url = url or os.getenv('SUPABASE_URL')
+                key = key or os.getenv('SUPABASE_KEY')
+                
+                if not url or not key:
+                    raise ValueError("Supabase URL and key must be provided")
+            
+            self.client: Client = create_client(url, key)
+            self.supabase_table = table
+            logger.info(f"Supabase database initialized: {table}")
+        except ImportError:
+            raise ImportError("supabase not installed. Install with: pip install supabase")
+        except Exception as e:
+            logger.error(f"Failed to initialize Supabase: {e}")
+            raise
+    
     def _init_json(self, json_path: Optional[str] = None, **kwargs):
         """Initialize JSON file storage."""
         if json_path is None:
@@ -234,6 +260,8 @@ class Storage:
                 return self._save_mysql(data)
             elif self.db_type == "mongodb":
                 return self._save_mongodb(data)
+            elif self.db_type == "supabase":
+                return self._save_supabase(data)
             elif self.db_type == "json":
                 return self._save_json(data)
             else:
@@ -322,6 +350,43 @@ class Storage:
         logger.info(f"Result saved to MongoDB: {data['student_name']} - Score: {data['score']}")
         return True
     
+    def _save_supabase(self, data: Dict) -> bool:
+        """Save to Supabase database."""
+        try:
+            # Prepare data for Supabase (convert datetime to string)
+            supabase_data = {
+                'student_name': data['student_name'],
+                'answers': json.dumps(data['answers']),
+                'score': data['score'],
+                'total_questions': data['total_questions'],
+                'correct': data['correct'],
+                'incorrect': data['incorrect'],
+                'unanswered': data['unanswered'],
+                'percentage': data['percentage'],
+                'grading_details': json.dumps(data.get('grading_details', {})),
+                'scanned_at': data['scanned_at']
+            }
+            
+            response = self.client.table(self.supabase_table).insert(supabase_data).execute()
+            logger.info(f"Result saved to Supabase: {data['student_name']} - Score: {data['score']}")
+            return True
+        except Exception as e:
+            logger.error(f"Error saving to Supabase: {e}")
+            return False
+    
+    def store_to_db(self, result: Dict) -> bool:
+        """
+        Store result to database (alias for save_result with Supabase focus).
+        This method is specifically for Supabase integration.
+        
+        Args:
+            result: Dictionary with test result data
+            
+        Returns:
+            True if saved successfully, False otherwise
+        """
+        return self.save_result(result)
+    
     def _save_json(self, data: Dict) -> bool:
         """Save to JSON file."""
         # Load existing data
@@ -366,6 +431,8 @@ class Storage:
                 return self._get_mysql(limit)
             elif self.db_type == "mongodb":
                 return self._get_mongodb(limit)
+            elif self.db_type == "supabase":
+                return self._get_supabase(limit)
             elif self.db_type == "json":
                 return self._get_json(limit)
             else:
@@ -410,6 +477,19 @@ class Storage:
         collection = self.client[self.collection_name]
         results = collection.find().sort('scanned_at', -1).limit(limit)
         return list(results)
+    
+    def _get_supabase(self, limit: int) -> list:
+        """Get results from Supabase."""
+        try:
+            response = self.client.table(self.supabase_table)\
+                .select("*")\
+                .order('scanned_at', desc=True)\
+                .limit(limit)\
+                .execute()
+            return response.data if response.data else []
+        except Exception as e:
+            logger.error(f"Error retrieving from Supabase: {e}")
+            return []
     
     def _get_json(self, limit: int) -> list:
         """Get results from JSON file."""

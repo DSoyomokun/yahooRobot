@@ -1,0 +1,11 @@
+opencv-python>=4.8.0
+pytesseract>=0.3.10
+numpy>=1.24.0
+Pillow>=10.0.0
+
+# Database drivers (install only what you need)
+# SQLite is built-in to Python, no install needed
+# psycopg2-binary>=2.9.0  # For PostgreSQL
+# mysql-connector-python>=8.0.0  # For MySQL
+# pymongo>=4.0.0  # For MongoDB
+
