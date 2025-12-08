@@ -65,3 +65,9 @@ notebooks/.ipynb_checkpoints/
 *.tmp
 *.bak
 
+# Captured images (keep folder structure, ignore contents)
+yahoo/mission/scanner/tests/captured_images/raw_captured/*
+yahoo/mission/scanner/tests/captured_images/detection_visualization/*
+!yahoo/mission/scanner/tests/captured_images/raw_captured/.gitkeep
+!yahoo/mission/scanner/tests/captured_images/detection_visualization/.gitkeep
+

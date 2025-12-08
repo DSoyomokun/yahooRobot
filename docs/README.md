@@ -22,7 +22,8 @@ yahoo/
 │   ├── ultrasonic.py # Ultrasonic sensors
 │   ├── tof.py       # Time-of-Flight sensors
 │   ├── hx711.py     # Load cell (weight)
-│   └── cameras.py   # Camera modules
+│   ├── camera.py    # Camera utilities
+│   └── gesture.py   # Gesture detection (hand raising)
 ├── mission/         # High-level behaviors
 │   ├── deliver.py   # Delivery mission
 │   ├── wait.py      # Waiting behavior

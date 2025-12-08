@@ -10,6 +10,7 @@ Flask-SocketIO>=5.3.0
 
 # Computer Vision
 # opencv-python>=4.8.0
+# mediapipe>=0.10.0  # Optional: for gesture detection
 # picamera2  # Install via apt on Pi OS
 
 # Sensor Libraries
