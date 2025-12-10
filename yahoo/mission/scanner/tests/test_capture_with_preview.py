@@ -14,7 +14,7 @@ project_root = Path(__file__).parent.parent.parent.parent.parent
 sys.path.insert(0, str(project_root))
 
 from yahoo.io.camera import PiCam
-from yahoo.mission.scanner.scanner import RobotScanner
+from yahoo.mission.scanner import ScanControl
 from yahoo.mission.mission_controller import MissionController
 
 
@@ -38,8 +38,25 @@ def test_mac():
     print("  4. Press 'q' to quit, 'c' to capture manually")
     print("\n" + "-"*60)
     
-    # Initialize camera (Mac typically uses device_index=1)
-    camera = PiCam(device_index=1, width=1280, height=720, simulate=False)
+    # Initialize camera - try multiple indices to find Continuity Camera
+    # Continuity Camera might be on index 1, 2, or 3
+    camera = None
+    for device_idx in [1, 2, 3, 0]:
+        print(f"🔍 Trying camera device {device_idx}...")
+        test_camera = PiCam(device_index=device_idx, width=1280, height=720, simulate=False)
+        if test_camera.cap is not None:
+            # Test if we can read a frame
+            test_frame = test_camera.capture()
+            if test_frame is not None:
+                camera = test_camera
+                print(f"✅ Found working camera at device {device_idx}")
+                break
+            else:
+                test_camera.release()
+    
+    if camera is None:
+        print("❌ No working camera found")
+        return
     
     if camera.cap is None and not camera.simulate:
         print("❌ Failed to open camera. Trying device 0...")
@@ -53,7 +70,7 @@ def test_mac():
     print("📹 Starting preview...\n")
     
     # Initialize scanner
-    scanner = RobotScanner()
+    scanner = ScanControl()
     
     frame_count = 0
     auto_capture_countdown = None
@@ -97,7 +114,16 @@ def test_mac():
             if auto_capture_triggered:
                 auto_capture_triggered = False
                 print("\n📸 Auto-capturing...")
-                process_capture(frame, scanner, camera_index=1)
+                show_results = process_capture(frame, scanner, camera_index=1)
+                if show_results:
+                    # Close camera preview temporarily
+                    cv2.destroyAllWindows()
+                    # Don't display images automatically - just save them
+                    print("\n" + "-"*60)
+                    print("✅ Analysis complete! Images saved to detection_visualization folder")
+                    print("📸 Camera preview will resume - Press 'c' to capture again, 'q' to quit")
+                    print("💡 View images in: yahoo/mission/scanner/tests/captured_images/detection_visualization/")
+                    time.sleep(2)
             
             # Handle keyboard input
             key = cv2.waitKey(1) & 0xFF
@@ -105,7 +131,16 @@ def test_mac():
                 break
             elif key == ord('c'):
                 print("\n📸 Manual capture triggered...")
-                process_capture(frame, scanner, camera_index=1)
+                show_results = process_capture(frame, scanner, camera_index=1)
+                if show_results:
+                    # Close camera preview temporarily
+                    cv2.destroyAllWindows()
+                    # Don't display images automatically - just save them
+                    print("\n" + "-"*60)
+                    print("✅ Analysis complete! Images saved to detection_visualization folder")
+                    print("📸 Camera preview will resume - Press 'c' to capture again, 'q' to quit")
+                    print("💡 View images in: yahoo/mission/scanner/tests/captured_images/detection_visualization/")
+                    time.sleep(2)
             elif key == ord('a'):
                 # Auto-capture with countdown
                 if auto_capture_countdown is None:
@@ -142,7 +177,7 @@ def test_pi():
     print("✅ Camera opened successfully")
     
     # Initialize scanner
-    scanner = RobotScanner()
+    scanner = ScanControl()
     
     # Countdown
     print("\n⏱️  Starting countdown...")
@@ -164,8 +199,80 @@ def test_pi():
     print("\n✅ Test complete")
 
 
+def display_capture_results(results, timeout_ms=5000):
+    """Display captured images and analysis results.
+    
+    Args:
+        results: Dictionary with image results
+        timeout_ms: Timeout in milliseconds for each window (default: 5 seconds)
+    """
+    if not results:
+        return
+    
+    print("\n" + "="*60)
+    print("🖼️  DISPLAYING CAPTURED IMAGES")
+    print("="*60)
+    print(f"\nPress any key in each window to continue (or wait {timeout_ms//1000}s to auto-advance)...")
+    print("Press 'q' to skip remaining images.\n")
+    
+    def resize_for_display(img, max_width=1280):
+        """Resize image for display if too large."""
+        if img is None or img.size == 0:
+            return None
+        if img.shape[1] > max_width:
+            scale = max_width / img.shape[1]
+            new_w = int(img.shape[1] * scale)
+            new_h = int(img.shape[0] * scale)
+            return cv2.resize(img, (new_w, new_h))
+        return img
+    
+    images_to_show = [
+        ('raw_image', "1. Raw Captured Image", None),
+        ('aligned_image', "2. Aligned Form", None),
+        ('name_region', "3. Name Region (for OCR)", 800),
+        ('detection_vis', "4. Detection Visualization", None),
+        ('bubble_analysis', "5. Bubble Analysis (Green=Filled)", None),
+    ]
+    
+    for key, title, max_width in images_to_show:
+        if key in results and results[key] is not None:
+            print(f"📸 Showing: {title}")
+            display = resize_for_display(results[key], max_width=max_width or 1280)
+            if display is not None:
+                cv2.imshow(title, display)
+                # Wait for key press or timeout
+                key_pressed = cv2.waitKey(timeout_ms) & 0xFF
+                if key_pressed == ord('q'):
+                    print("⏭️  Skipping remaining images...")
+                    break
+                elif key_pressed == 255:  # Timeout
+                    print(f"⏱️  Auto-advancing after {timeout_ms//1000}s...")
+            else:
+                print(f"⚠️  Could not display {title}")
+    
+    cv2.destroyAllWindows()
+    print("\n✅ All images displayed!")
+
+
 def process_capture(frame, scanner, camera_index: int = 0):
-    """Process a captured frame with detailed visualization."""
+    """Process a captured frame with detailed visualization.
+    Returns dict with images and paths for display."""
+    def _align_for_visualization(image):
+        """Match the main pipeline alignment (rotate landscape + perspective)."""
+        from yahoo.mission.scanner.alignment.aligner import align_form, align_form_simple
+
+        img = image.copy()
+        h, w = img.shape[:2]
+
+        # Scan pipeline rotates to portrait first; mirror that so ROIs line up.
+        if w > h:
+            img = cv2.rotate(img, cv2.ROTATE_90_CLOCKWISE)
+
+        aligned = align_form(img)
+        if aligned is None:
+            aligned = align_form_simple(img)
+        return aligned
+
     # Create organized folder structure
     base_dir = Path(__file__).parent / "captured_images"
     raw_dir = base_dir / "raw_captured"
@@ -180,6 +287,13 @@ def process_capture(frame, scanner, camera_index: int = 0):
     raw_image_path = raw_dir / f"capture_{timestamp}.jpg"
     cv2.imwrite(str(raw_image_path), frame)
     print(f"💾 Raw capture saved to: {raw_image_path}")
+    
+    # Prepare results dict for display
+    results = {
+        'raw_image': frame.copy(),
+        'timestamp': timestamp,
+        'paths': {}
+    }
     
     # Test paper detection
     print("\n" + "="*60)
@@ -197,113 +311,138 @@ def process_capture(frame, scanner, camera_index: int = 0):
     except Exception as e:
         print(f"⚠️  Paper detection test failed: {e}")
     
-    # Test name extraction (handwriting detection)
-    print("\n" + "="*60)
-    print("✍️  HANDWRITING / NAME DETECTION")
-    print("="*60)
-    try:
-        from yahoo.mission.scanner.name_reader import NameReader
-        name_reader = NameReader()
-        
-        # Extract name region
-        name_region = name_reader.extract_name_region(frame)
-        if name_region.size > 0:
-            # Save name region to detection_visualization folder
-            name_region_path = vis_dir / f"name_region_{timestamp}.jpg"
-            cv2.imwrite(str(name_region_path), name_region)
-            print(f"📝 Name region extracted and saved to: {name_region_path}")
-            
-            # Extract name
-            student_name = name_reader.extract_name(frame)
-            if student_name:
-                print(f"✅ Name extracted: '{student_name}'")
-            else:
-                print("⚠️  No name extracted (may be empty or unclear)")
-        else:
-            print("❌ Failed to extract name region")
-    except Exception as e:
-        print(f"❌ Name extraction error: {e}")
-        import traceback
-        traceback.print_exc()
-    
-    # Test bubble detection
-    print("\n" + "="*60)
-    print("⭕ BUBBLE DETECTION")
-    print("="*60)
-    try:
-        from yahoo.mission.scanner.bubble_detector import BubbleDetector
-        bubble_detector = BubbleDetector()
-        
-        # Preprocess
-        processed = bubble_detector.preprocess(frame)
-        bubbles = bubble_detector.detect_bubbles(processed)
-        
-        print(f"📊 Total bubbles detected: {len(bubbles)}")
-        
-        if bubbles:
-            # Get grayscale for fill calculation
-            if len(frame.shape) == 3:
-                gray_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-            else:
-                gray_frame = frame
-            
-            # Group by question
-            question_groups = bubble_detector.group_by_question(bubbles, num_choices=4)
-            print(f"📋 Questions found: {len(question_groups)}")
-            
-            # Show first few questions
-            print("\n📝 Bubble details (first 5 questions):")
-            for q_num in sorted(question_groups.keys())[:5]:
-                q_bubbles = question_groups[q_num]
-                print(f"\n  Question {q_num}:")
-                for i, bubble in enumerate(q_bubbles[:4]):
-                    fill = bubble_detector.calculate_fill(gray_frame, bubble)
-                    letter = chr(ord('A') + i)
-                    marked = "✅ MARKED" if fill >= bubble_detector.fill_threshold else "⭕ empty"
-                    print(f"    {letter}: {fill:.1%} fill - {marked}")
-            
-            # Create visualization
-            vis_frame = frame.copy()
-            for bubble in bubbles[:50]:  # Limit to 50 for display
-                x, y, w, h = bubble['bounding_rect']
-                fill = bubble_detector.calculate_fill(gray_frame, bubble)
-                color = (0, 255, 0) if fill >= bubble_detector.fill_threshold else (0, 0, 255)
-                cv2.rectangle(vis_frame, (x, y), (x+w, y+h), color, 2)
-                cv2.putText(vis_frame, f"{fill:.0%}", (x, y-5), 
-                           cv2.FONT_HERSHEY_SIMPLEX, 0.4, color, 1)
-            
-            # Draw name region
-            h, w = frame.shape[:2]
-            name_top = int(h * 0.05)
-            name_bottom = int(h * 0.15)
-            name_left = int(w * 0.10)
-            name_right = int(w * 0.50)
-            cv2.rectangle(vis_frame, (name_left, name_top), (name_right, name_bottom), (255, 255, 0), 3)
-            cv2.putText(vis_frame, "NAME REGION", (name_left, name_top - 10),
-                       cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 0), 2)
-            
-            # Save visualization to detection_visualization folder
-            vis_path = vis_dir / f"bubble_detection_{timestamp}.jpg"
-            cv2.imwrite(str(vis_path), vis_frame)
-            print(f"\n🎨 Bubble detection visualization saved to: {vis_path}")
-            print("   - Green boxes = Marked bubbles")
-            print("   - Red boxes = Empty bubbles")
-            print("   - Yellow box = Name region")
-        else:
-            print("❌ No bubbles detected")
-    except Exception as e:
-        print(f"❌ Bubble detection error: {e}")
-        import traceback
-        traceback.print_exc()
-    
-    # Test full scanning pipeline
+    # Test full scanning pipeline (includes name and bubble detection)
     print("\n" + "="*60)
     print("📝 FULL SCAN RESULTS")
     print("="*60)
     try:
-        result = scanner.scan_image(frame, store=False)
+        print("⏳ Processing image (this may take a moment)...")
+        print("   Step 1: Aligning form...")
+        import sys
+        sys.stdout.flush()
+        
+        result = scanner.process_test(image=frame, store=False)
+        print("✅ Processing complete!")
         
         if result:
+            print("\n✅ SCAN SUCCESSFUL!")
+            print(f"\n👤 Student Name: {result.get('student_name', 'Unknown')}")
+            print(f"\n📊 Score: {result.get('score', 0)}/{result.get('total_questions', 0)}")
+            print(f"   Percentage: {result.get('percentage', 0):.1f}%")
+            print(f"   ✅ Correct: {result.get('correct', 0)}")
+            print(f"   ❌ Incorrect: {result.get('incorrect', 0)}")
+            print(f"   ⚪ Unanswered: {result.get('unanswered', 0)}")
+            
+            # Show answers
+            answers = result.get('answers', {})
+            if answers:
+                print(f"\n📝 Detected Answers:")
+                # Group answers for better display
+                answer_list = []
+                for q_num in sorted(answers.keys(), key=int):
+                    answer = answers[q_num]
+                    if answer:
+                        answer_list.append(f"Q{q_num}: {answer}")
+                    else:
+                        answer_list.append(f"Q{q_num}: (unanswered)")
+                
+                # Print in columns
+                for i in range(0, len(answer_list), 5):
+                    print("   " + "  ".join(answer_list[i:i+5]))
+        
+        # Generate analysis images for display
+        print("\n⏳ Generating analysis images...")
+        try:
+            from yahoo.mission.scanner.alignment.aligner import align_form_simple
+            from yahoo.mission.scanner.alignment.roi_extractor import extract_name_roi, extract_bubble_roi
+            from yahoo.mission.scanner.config.roi_config import get_bubble_coords, get_name_roi_coords, NUM_QUESTIONS
+            from yahoo.mission.scanner.bubbles.bubble_detector import BubbleDetector
+            
+            # Align image
+            print("   - Aligning image...")
+            aligned = _align_for_visualization(frame)
+            results['aligned_image'] = aligned.copy()
+            
+            # Extract name region
+            print("   - Extracting name region...")
+            name_roi = extract_name_roi(aligned)
+            results['name_region'] = name_roi.copy() if name_roi.size > 0 else None
+            
+            # Create detection visualization
+            print("   - Creating bubble detection visualization...")
+            h, w = aligned.shape[:2]
+            vis = aligned.copy()
+            
+            # Draw name region
+            name_top, name_bottom, name_left, name_right = get_name_roi_coords(w, h)
+            cv2.rectangle(vis, (name_left, name_top), (name_right, name_bottom), (0, 255, 0), 3)
+            cv2.putText(vis, "NAME REGION", (name_left, name_top - 10), 
+                        cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
+            
+            # Draw bubbles
+            detector = BubbleDetector()
+            for q_num in range(1, NUM_QUESTIONS + 1):
+                for choice_idx, letter in enumerate(['A', 'B', 'C', 'D']):
+                    center_x, center_y, radius = get_bubble_coords(q_num, choice_idx, w, h)
+                    bubble_roi = extract_bubble_roi(aligned, q_num, choice_idx)
+                    fill_ratio = detector.detect_fill(bubble_roi)
+                    is_filled = fill_ratio >= detector.fill_threshold
+                    
+                    color = (0, 255, 0) if is_filled else (100, 100, 100)
+                    thickness = 4 if is_filled else 2
+                    cv2.circle(vis, (center_x, center_y), radius + 3, color, thickness)
+                    
+                    label = f"{letter}:{fill_ratio:.0%}"
+                    cv2.putText(vis, label, (center_x - 15, center_y - radius - 5),
+                               cv2.FONT_HERSHEY_SIMPLEX, 0.3, color, 1)
+            
+            results['detection_vis'] = vis.copy()
+            results['bubble_analysis'] = vis.copy()  # Same for now
+            
+            # Save all analysis images to detection_visualization folder
+            print("   - Saving analysis images...")
+            
+            # Save aligned form
+            aligned_path = vis_dir / f"02_aligned_form_{timestamp}.jpg"
+            cv2.imwrite(str(aligned_path), aligned)
+            results['paths']['aligned'] = aligned_path
+            print(f"      ✅ Aligned form: {aligned_path.name}")
+            
+            # Save name region
+            if results['name_region'] is not None and results['name_region'].size > 0:
+                name_path = vis_dir / f"03_name_region_{timestamp}.jpg"
+                cv2.imwrite(str(name_path), results['name_region'])
+                results['paths']['name_region'] = name_path
+                print(f"      ✅ Name region: {name_path.name}")
+            
+            # Save detection visualization
+            vis_path = vis_dir / f"04_detection_visualization_{timestamp}.jpg"
+            cv2.imwrite(str(vis_path), vis)
+            results['paths']['detection_vis'] = vis_path
+            print(f"      ✅ Detection visualization: {vis_path.name}")
+            
+            # Save bubble analysis
+            bubble_path = vis_dir / f"05_bubble_analysis_{timestamp}.jpg"
+            cv2.imwrite(str(bubble_path), vis)
+            results['paths']['bubble_analysis'] = bubble_path
+            print(f"      ✅ Bubble analysis: {bubble_path.name}")
+            
+            print("✅ Analysis images generated and saved!")
+        except Exception as e:
+            print(f"⚠️  Could not generate analysis images: {e}")
+            import traceback
+            traceback.print_exc()
+        
+        if not result:
+            print("❌ Scan failed - no results returned")
+    except Exception as e:
+        print(f"❌ Scan error: {e}")
+        import traceback
+        traceback.print_exc()
+        result = None
+    
+    # Display results if we have them
+    if result:
             print("\n✅ SCAN SUCCESSFUL!")
             print(f"\n👤 Student Name: {result.get('student_name', 'Unknown')}")
             print(f"\n📊 Score: {result.get('score', 0)}/{result.get('total_questions', 0)}")
@@ -345,16 +484,11 @@ def process_capture(frame, scanner, camera_index: int = 0):
                     f.write(f"  Q{q_num}: {answers.get(q_num, 'unanswered')}\n")
             print(f"\n💾 Results summary saved to: {summary_path}")
             
-            # Also save a processed image ready for grading/storage
-            processed_image_path = vis_dir / f"processed_{timestamp}.jpg"
-            cv2.imwrite(str(processed_image_path), frame)
-            print(f"📄 Processed image saved to: {processed_image_path} (ready for auto-grade/storage)")
-        else:
-            print("❌ Scan failed - no results returned")
-    except Exception as e:
-        print(f"❌ Scan error: {e}")
-        import traceback
-        traceback.print_exc()
+            # Also save raw captured image to visualization folder for reference
+            raw_vis_path = vis_dir / f"01_raw_captured_{timestamp}.jpg"
+            cv2.imwrite(str(raw_vis_path), frame)
+            results['paths']['raw'] = raw_vis_path
+            print(f"📄 Raw captured image saved to: {raw_vis_path.name}")
     
     print("\n" + "="*60)
     print("✅ PROCESSING COMPLETE")
@@ -370,6 +504,8 @@ def process_capture(frame, scanner, camera_index: int = 0):
     print(f"         └─ scan_results_{timestamp}.txt")
     print(f"\n💡 The detection_visualization folder contains processed images")
     print(f"   ready for auto-grading and storage.")
+    
+    return results
 
 
 def main():
@@ -432,4 +568,3 @@ Examples:
 
 if __name__ == "__main__":
     sys.exit(main())
-

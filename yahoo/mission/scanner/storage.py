@@ -24,7 +24,15 @@ class Storage:
         """
         self.db_type = db_type.lower()
         self.client = None
+        self.name_matcher = None
         self._initialize(**kwargs)
+        
+        # Initialize name matcher
+        try:
+            from .name_matcher import NameMatcher
+            self.name_matcher = NameMatcher()
+        except ImportError:
+            logger.warning("NameMatcher not available, name matching disabled")
     
     def _initialize(self, **kwargs):
         """Initialize database client based on type."""
@@ -65,11 +73,24 @@ class Storage:
             self.client = sqlite3.connect(db_path, check_same_thread=False)
             self.client.row_factory = sqlite3.Row
             
-            # Create table if it doesn't exist
+            # Create class table if it doesn't exist
             cursor = self.client.cursor()
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS class (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    full_name TEXT NOT NULL,
+                    last_name TEXT,
+                    first_name TEXT,
+                    role TEXT,
+                    UNIQUE(full_name)
+                )
+            """)
+            
+            # Create test_results table with student_id and needs_review
             cursor.execute("""
                 CREATE TABLE IF NOT EXISTS test_results (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    student_id INTEGER,
                     student_name TEXT NOT NULL,
                     answers TEXT NOT NULL,
                     score REAL NOT NULL,
@@ -80,7 +101,9 @@ class Storage:
                     percentage REAL NOT NULL,
                     grading_details TEXT,
                     scanned_at TEXT NOT NULL,
-                    created_at TEXT DEFAULT CURRENT_TIMESTAMP
+                    needs_review BOOLEAN DEFAULT 0,
+                    created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+                    FOREIGN KEY (student_id) REFERENCES class(id)
                 )
             """)
             self.client.commit()
@@ -106,11 +129,24 @@ class Storage:
             )
             self.client.autocommit = True
             
-            # Create table
+            # Create class table
             cursor = self.client.cursor()
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS class (
+                    id SERIAL PRIMARY KEY,
+                    full_name VARCHAR(255) NOT NULL,
+                    last_name VARCHAR(255),
+                    first_name VARCHAR(255),
+                    role VARCHAR(50),
+                    UNIQUE(full_name)
+                )
+            """)
+            
+            # Create test_results table with student_id and needs_review
             cursor.execute("""
                 CREATE TABLE IF NOT EXISTS test_results (
                     id SERIAL PRIMARY KEY,
+                    student_id INTEGER,
                     student_name VARCHAR(255) NOT NULL,
                     answers JSONB NOT NULL,
                     score REAL NOT NULL,
@@ -121,7 +157,9 @@ class Storage:
                     percentage REAL NOT NULL,
                     grading_details JSONB,
                     scanned_at TIMESTAMP NOT NULL,
-                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                    needs_review BOOLEAN DEFAULT FALSE,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    FOREIGN KEY (student_id) REFERENCES class(id)
                 )
             """)
             logger.info(f"PostgreSQL database initialized: {database}@{host}")
@@ -144,11 +182,24 @@ class Storage:
                 **kwargs
             )
             
-            # Create table
+            # Create class table
             cursor = self.client.cursor()
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS class (
+                    id INT AUTO_INCREMENT PRIMARY KEY,
+                    full_name VARCHAR(255) NOT NULL,
+                    last_name VARCHAR(255),
+                    first_name VARCHAR(255),
+                    role VARCHAR(50),
+                    UNIQUE(full_name)
+                )
+            """)
+            
+            # Create test_results table with student_id and needs_review
             cursor.execute("""
                 CREATE TABLE IF NOT EXISTS test_results (
                     id INT AUTO_INCREMENT PRIMARY KEY,
+                    student_id INT,
                     student_name VARCHAR(255) NOT NULL,
                     answers JSON NOT NULL,
                     score DECIMAL(10,2) NOT NULL,
@@ -159,7 +210,9 @@ class Storage:
                     percentage DECIMAL(5,2) NOT NULL,
                     grading_details JSON,
                     scanned_at DATETIME NOT NULL,
-                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                    needs_review BOOLEAN DEFAULT FALSE,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    FOREIGN KEY (student_id) REFERENCES class(id)
                 )
             """)
             self.client.commit()
@@ -221,7 +274,7 @@ class Storage:
     
     def save_result(self, result: Dict) -> bool:
         """
-        Save test result to database.
+        Save test result to database with automatic name matching.
         
         Args:
             result: Dictionary with test result data in format:
@@ -239,8 +292,26 @@ class Storage:
             return False
         
         try:
+            # Stage 3: Matching - Match OCR name to database
+            student_id = None
+            needs_review = False
+            ocr_name = result.get('student_name', 'Unknown')
+            
+            if self.name_matcher and ocr_name and ocr_name != 'Unknown':
+                student_id = self.name_matcher.match_student_name(ocr_name, self)
+                
+                if student_id is None:
+                    needs_review = True
+                    # Get suggestions for manual review
+                    suggestions = self.name_matcher.get_suggestions(ocr_name, self, limit=3)
+                    if suggestions:
+                        logger.warning(f"No match found for '{ocr_name}'. Suggestions: {', '.join([s[1] for s in suggestions])}")
+                    else:
+                        logger.warning(f"No match found for '{ocr_name}'")
+            
             data = {
-                'student_name': result.get('student_name', 'Unknown'),
+                'student_id': student_id,
+                'student_name': ocr_name,
                 'answers': result.get('answers', {}),
                 'score': result.get('score', 0.0),
                 'total_questions': result.get('total_questions', 0),
@@ -249,7 +320,8 @@ class Storage:
                 'unanswered': result.get('unanswered', 0),
                 'percentage': result.get('percentage', 0.0),
                 'grading_details': result.get('details', {}),
-                'scanned_at': result.get('scanned_at', datetime.now().isoformat())
+                'scanned_at': result.get('scanned_at', datetime.now().isoformat()),
+                'needs_review': needs_review
             }
             
             if self.db_type == "sqlite":
@@ -276,10 +348,11 @@ class Storage:
         cursor = self.client.cursor()
         cursor.execute("""
             INSERT INTO test_results 
-            (student_name, answers, score, total_questions, correct, incorrect, 
-             unanswered, percentage, grading_details, scanned_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            (student_id, student_name, answers, score, total_questions, correct, incorrect, 
+             unanswered, percentage, grading_details, scanned_at, needs_review)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """, (
+            data.get('student_id'),
             data['student_name'],
             json.dumps(data['answers']),
             data['score'],
@@ -289,10 +362,12 @@ class Storage:
             data['unanswered'],
             data['percentage'],
             json.dumps(data['grading_details']),
-            data['scanned_at']
+            data['scanned_at'],
+            data.get('needs_review', False)
         ))
         self.client.commit()
-        logger.info(f"Result saved to SQLite: {data['student_name']} - Score: {data['score']}")
+        status = "MATCHED" if data.get('student_id') else "NEEDS REVIEW"
+        logger.info(f"Result saved to SQLite: {data['student_name']} - Score: {data['score']} - {status}")
         return True
     
     def _save_postgresql(self, data: Dict) -> bool:
@@ -300,10 +375,11 @@ class Storage:
         cursor = self.client.cursor()
         cursor.execute("""
             INSERT INTO test_results 
-            (student_name, answers, score, total_questions, correct, incorrect, 
-             unanswered, percentage, grading_details, scanned_at)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+            (student_id, student_name, answers, score, total_questions, correct, incorrect, 
+             unanswered, percentage, grading_details, scanned_at, needs_review)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
         """, (
+            data.get('student_id'),
             data['student_name'],
             json.dumps(data['answers']),
             data['score'],
@@ -313,9 +389,11 @@ class Storage:
             data['unanswered'],
             data['percentage'],
             json.dumps(data['grading_details']),
-            data['scanned_at']
+            data['scanned_at'],
+            data.get('needs_review', False)
         ))
-        logger.info(f"Result saved to PostgreSQL: {data['student_name']} - Score: {data['score']}")
+        status = "MATCHED" if data.get('student_id') else "NEEDS REVIEW"
+        logger.info(f"Result saved to PostgreSQL: {data['student_name']} - Score: {data['score']} - {status}")
         return True
     
     def _save_mysql(self, data: Dict) -> bool:
@@ -323,10 +401,11 @@ class Storage:
         cursor = self.client.cursor()
         cursor.execute("""
             INSERT INTO test_results 
-            (student_name, answers, score, total_questions, correct, incorrect, 
-             unanswered, percentage, grading_details, scanned_at)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+            (student_id, student_name, answers, score, total_questions, correct, incorrect, 
+             unanswered, percentage, grading_details, scanned_at, needs_review)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
         """, (
+            data.get('student_id'),
             data['student_name'],
             json.dumps(data['answers']),
             data['score'],
@@ -336,10 +415,12 @@ class Storage:
             data['unanswered'],
             data['percentage'],
             json.dumps(data['grading_details']),
-            data['scanned_at']
+            data['scanned_at'],
+            data.get('needs_review', False)
         ))
         self.client.commit()
-        logger.info(f"Result saved to MySQL: {data['student_name']} - Score: {data['score']}")
+        status = "MATCHED" if data.get('student_id') else "NEEDS REVIEW"
+        logger.info(f"Result saved to MySQL: {data['student_name']} - Score: {data['score']} - {status}")
         return True
     
     def _save_mongodb(self, data: Dict) -> bool:

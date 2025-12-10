@@ -1,6 +1,9 @@
 """Mission control - deliver, wait, collect behaviors"""
 
-from .scanner.scanner import RobotScanner, capture_image
+from .scanner.scan_control import ScanControl
+# Backward compatibility
+RobotScanner = ScanControl
+capture_image = ScanControl.capture_image
 
 try:
     from .mission_controller import MissionController

@@ -10,7 +10,7 @@ from pathlib import Path
 # Add project root to path to import yahoo.mission.scanner
 sys.path.insert(0, str(Path(__file__).parent.parent.parent.parent.parent))
 
-from yahoo.mission.scanner import RobotScanner, capture_image
+from yahoo.mission.scanner import ScanControl
 
 # Configure logging
 logging.basicConfig(
@@ -24,7 +24,7 @@ def test_with_camera():
     print("TESTING ROBOT SCANNER - CAMERA MODE")
     print("="*60)
     
-    scanner = RobotScanner(camera_index=0)
+    scanner = ScanControl(camera_index=0)
     
     try:
         # Capture and scan
@@ -66,11 +66,11 @@ def test_with_image(image_path: str):
         print(f"❌ Failed to load image: {image_path}")
         return False
     
-    scanner = RobotScanner()
+    scanner = ScanControl()
     
     try:
         # Scan the loaded image
-        result = scanner.scan_paper(image=image)
+        result = scanner.process_test(image=image, store=True)
         
         if result:
             print("\n✅ SCAN SUCCESSFUL!")

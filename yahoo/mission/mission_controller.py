@@ -8,7 +8,7 @@ import cv2
 import numpy as np
 from typing import Optional, Dict
 
-from .scanner.scanner import RobotScanner
+from .scanner.scan_control import ScanControl
 from yahoo.io.camera import PiCam
 from yahoo.io.leds import LEDController
 
@@ -31,7 +31,7 @@ class MissionController:
         self.simulate = simulate or (robot is None or getattr(robot, 'simulate', False))
         
         # Initialize components
-        self.scanner = RobotScanner()
+        self.scanner = ScanControl(camera_index=camera_index)
         self.camera = PiCam(device_index=camera_index, simulate=self.simulate)
         self.leds = LEDController(robot=robot, simulate=self.simulate)
         
@@ -124,8 +124,8 @@ class MissionController:
                 cv2.imwrite(str(processed_path), image)
                 logger.info(f"Processed image saved to: {processed_path}")
             
-            # Scan the paper (don't auto-store, we'll handle that separately)
-            result = self.scanner.scan_image(image, store=False)
+            # Scan the paper using new pipeline
+            result = self.scanner.process_test(image=image, store=False)
             
             if result is None:
                 self.leds.fail()
