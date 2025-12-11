@@ -139,11 +139,41 @@ def main():
                 # TODO: Import and start Flask app
                 pass
             else:
-                logger.info("Robot ready. Press Ctrl+C to exit.")
-                # TODO: Start main control loop
+                logger.info("Robot ready. Starting movement test...")
                 import time
-                while True:
+
+                # Simple movement test
+                try:
+                    logger.info("Moving forward...")
+                    robot.drive.forward(200)  # Move forward at 200 DPS
+                    time.sleep(3)  # Move for 3 seconds
+
+                    logger.info("Stopping...")
+                    robot.drive.stop()
                     time.sleep(1)
+
+                    logger.info("Turning right...")
+                    robot.drive.turn_right(150)  # Turn right at 150 DPS
+                    time.sleep(2)  # Turn for 2 seconds
+
+                    logger.info("Stopping...")
+                    robot.drive.stop()
+                    time.sleep(1)
+
+                    logger.info("Moving backward...")
+                    robot.drive.backward(200)  # Move backward
+                    time.sleep(2)  # Move for 2 seconds
+
+                    logger.info("Stopping...")
+                    robot.drive.stop()
+
+                    logger.info("Movement test complete. Press Ctrl+C to exit.")
+                    while True:
+                        time.sleep(1)
+
+                except Exception as e:
+                    logger.error(f"Movement error: {e}")
+                    robot.drive.stop()
     
     except KeyboardInterrupt:
         logger.info("Shutting down...")
