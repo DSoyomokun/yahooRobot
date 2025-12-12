@@ -139,35 +139,49 @@ def main():
                 # TODO: Import and start Flask app
                 pass
             else:
-                logger.info("Robot ready. Starting movement test...")
+                logger.info("Robot ready. Starting movement sequence...")
                 import time
 
-                # Simple movement test
+                # Movement sequence: forward 4s, stop 2s, turn 180°, stop 1s, forward 4s, turn 180°, stop
                 try:
-                    logger.info("Moving forward...")
-                    robot.drive.forward(200)  # Move forward at 200 DPS
-                    time.sleep(3)  # Move for 3 seconds
+                    # Step 1: Move forward at 200 DPS for 4 seconds
+                    logger.info("Step 1: Moving forward at 200 DPS for 4 seconds...")
+                    robot.drive.forward(200)
+                    time.sleep(4)
 
-                    logger.info("Stopping...")
+                    # Step 2: Stop for 2 seconds
+                    logger.info("Step 2: Stopping for 2 seconds...")
                     robot.drive.stop()
-                    time.sleep(1)
+                    time.sleep(2)
 
-                    logger.info("Turning right...")
-                    robot.drive.turn_right(150)  # Turn right at 150 DPS
-                    time.sleep(2)  # Turn for 2 seconds
+                    logger.info("Step 1: Moving forward at 200 DPS for 4 seconds...")
+                    robot.drive.forward(200)
+                    time.sleep(4)
 
-                    logger.info("Stopping...")
+                    # Step 2: Stop for 2 seconds
+                    logger.info("Step 2: Stopping for 2 seconds...")
                     robot.drive.stop()
-                    time.sleep(1)
+                    time.sleep(2)
 
-                    logger.info("Moving backward...")
-                    robot.drive.backward(200)  # Move backward
-                    time.sleep(2)  # Move for 2 seconds
+                    logger.info("Step 1: Moving forward at 200 DPS for 4 seconds...")
+                    robot.drive.forward(200)
+                    time.sleep(4)
 
-                    logger.info("Stopping...")
+                    # Step 2: Stop for 2 seconds
+                    logger.info("Step 2: Stopping for 2 seconds...")
                     robot.drive.stop()
+                    time.sleep(2)
 
-                    logger.info("Movement test complete. Press Ctrl+C to exit.")
+                    # Step 6: Rotate 180 degrees again
+                    logger.info("Step 6: Rotating 180 degrees again...")
+                    robot.drive.turn_degrees(180)
+
+                    logger.info("Step 1: Moving forward at 200 DPS for 4 seconds...")
+                    robot.drive.forward(600)
+                    time.sleep(4)
+                    
+
+                    logger.info("Movement sequence complete. Press Ctrl+C to exit.")
                     while True:
                         time.sleep(1)
 
