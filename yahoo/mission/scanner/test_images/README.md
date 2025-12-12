@@ -23,3 +23,4 @@ python3 yahoo/mission/scanner/mac_tests/test_mac_accuracy_report.py
   - 10 multiple-choice questions (A, B, C, D bubbles)
   - Clear, well-lit images work best
 
+
