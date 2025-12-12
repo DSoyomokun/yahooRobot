@@ -1,48 +1,22 @@
 """
-Robot Scanner Module - New Modular Architecture
-Handles test paper scanning, grading, and storage for the Yahoo Robot.
+Simplified scanner module for paper scanning with weight sensor.
 """
 
-# Main orchestrator
-from .scan_control import ScanControl
+# Main entry point
+from .scan_paper import main as scan_paper_main
 
-# Module components (for advanced usage)
-from .alignment.aligner import align_form, align_form_simple
-from .alignment.roi_extractor import extract_rois, extract_name_roi, extract_bubble_roi
-from .name.name_pipeline import NamePipeline
-from .name.ocr_engine import OCREngine
-from .bubbles.bubble_detector import BubbleDetector
-from .grading.score import ScoreCalculator
-from .grading.saver import ResultSaver
-from .storage import Storage
+# Simplified pipeline
+from .simple_pipeline import process_paper_scan
 
-# Backward compatibility (deprecated - use ScanControl instead)
-# These will be removed in future versions
-try:
-    from .scan_control import ScanControl as RobotScanner
-    capture_image = ScanControl.capture_image
-except ImportError:
-    RobotScanner = None
-    capture_image = None
+# Components
+from .camera_capture import CameraCapture, capture_image
+from .weight_sensor_mock import MockWeightSensor, HX711WeightSensor
 
 __all__ = [
-    # Main API
-    'ScanControl',
-    
-    # Backward compatibility (deprecated)
-    'RobotScanner',
+    'scan_paper_main',
+    'process_paper_scan',
+    'CameraCapture',
     'capture_image',
-    
-    # Module components
-    'align_form',
-    'align_form_simple',
-    'extract_rois',
-    'extract_name_roi',
-    'extract_bubble_roi',
-    'NamePipeline',
-    'OCREngine',
-    'BubbleDetector',
-    'ScoreCalculator',
-    'ResultSaver',
-    'Storage'
+    'MockWeightSensor',
+    'HX711WeightSensor',
 ]

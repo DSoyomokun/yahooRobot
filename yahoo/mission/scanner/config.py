@@ -36,25 +36,29 @@ def roi_pct_to_px(pct_roi, width=WARPED_WIDTH, height=WARPED_HEIGHT):
 NAME_ROI_PCT = (0.075, 0.12, 0.85, 0.08)  # y: 12% from top (was 5.8%), height: 8% (was 7.5%)
 
 # ------------------------------------------------------
-# 3. BUBBLE ROIs FOR EACH QUESTION (A–D)
-# Percentage positions calibrated from your uploaded test
+# 3. WEIGHT SENSOR CONFIGURATION
 # ------------------------------------------------------
-# NOTE:
-# These values are approximate placement derived from your image.
-# We will refine them after first run, but they are close enough to begin.
+# Weight threshold in grams to trigger camera
+WEIGHT_THRESHOLD_GRAMS = float(os.getenv("WEIGHT_THRESHOLD_GRAMS", "1.0"))
 
-BUBBLE_ROIS_PCT = {
-    q: {
-        "A": (0.16, 0.17 + (q-1)*0.085, 0.055, 0.03),
-        "B": (0.31, 0.17 + (q-1)*0.085, 0.055, 0.03),
-        "C": (0.46, 0.17 + (q-1)*0.085, 0.055, 0.03),
-        "D": (0.61, 0.17 + (q-1)*0.085, 0.055, 0.03),
-    }
-    for q in range(1, 11)
-}
+# HX711 GPIO pins (for Raspberry Pi)
+HX711_DT_PIN = int(os.getenv("HX711_DT_PIN", "5"))   # Data pin
+HX711_SCK_PIN = int(os.getenv("HX711_SCK_PIN", "6")) # Clock pin
+
+# Enable/disable weight sensor
+WEIGHT_SENSOR_ENABLED = os.getenv("WEIGHT_SENSOR_ENABLED", "false").lower() == "true"
+
+# Use mock sensor for testing (when hardware not available)
+USE_MOCK_SENSOR = os.getenv("USE_MOCK_SENSOR", "true").lower() == "true"
 
 # ------------------------------------------------------
-# 4. ROSTER (You can move this to a JSON file if preferred)
+# 4. CAMERA CONFIGURATION
+# ------------------------------------------------------
+CAMERA_INDEX = int(os.getenv("CAMERA_INDEX", "0"))
+USE_PICAM = os.getenv("USE_PICAM", "false").lower() == "true"
+
+# ------------------------------------------------------
+# 5. ROSTER (You can move this to a JSON file if preferred)
 # ------------------------------------------------------
 CLASS_ROSTER = [
     ("Abera, Nahom", "Student"),
@@ -90,20 +94,4 @@ CLASS_ROSTER = [
     ("Soyomokun, Damilare", "Student"),
 ]
 
-# ------------------------------------------------------
-# 5. ANSWER KEY
-# Move to JSON later if needed.
-# ------------------------------------------------------
-ANSWER_KEY = {
-    1: "A",
-    2: "B",
-    3: "C",
-    4: "D",
-    5: "A",
-    6: "B",
-    7: "C",
-    8: "D",
-    9: "A",
-    10: "B",
-}
 
