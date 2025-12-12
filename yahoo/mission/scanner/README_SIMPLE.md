@@ -4,8 +4,9 @@ Ultra-simple paper scanning system for GoPiGo robot that detects paper and saves
 
 ## 🚀 Testing on GoPiGo
 
-**For step-by-step GoPiGo testing instructions, see:**
-- **[TEST_ON_GOPIGO.md](TEST_ON_GOPIGO.md)** - Complete detailed guide (recommended)
+**For testing documentation, see:**
+- **[TESTING.md](TESTING.md)** - Complete testing guide with test cases and checklist (recommended)
+- **[TEST_ON_GOPIGO.md](TEST_ON_GOPIGO.md)** - Setup and deployment guide
 - **[QUICK_TEST_STEPS.md](QUICK_TEST_STEPS.md)** - Quick 5-minute reference
 
 **⚠️ Important:** This scanner is **GoPiGo robot only** - requires Raspberry Pi with camera enabled.
