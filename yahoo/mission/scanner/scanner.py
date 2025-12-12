@@ -8,10 +8,14 @@ import sqlite3
 import time
 import datetime
 import os
-from dotenv import load_dotenv
 
-# Load environment variables from .env file
-load_dotenv()
+# Try to load .env file (optional - for brightness threshold override)
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except ImportError:
+    # python-dotenv not installed - that's okay, we'll use defaults
+    pass
 
 #############################################
 # AUTO-DETECT PLATFORM
