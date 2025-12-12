@@ -1,7 +1,3 @@
 """
-Simplified scanner module for paper scanning.
+Scanner module for paper detection and storage.
 """
-# Main scanner
-from .scanner import main as scanner_main
-
-__all__ = ['scanner_main']
