@@ -1,6 +1,6 @@
 """
 OFFLINE PAPER SCANNING SYSTEM (SIMPLIFIED)
-GoPiGo + Mac compatible
+GoPiGo robot only
 LEDs: idle, processing, success, error
 """
 import cv2
@@ -26,30 +26,32 @@ def is_raspberry_pi():
         pass
     return False
 
-def auto_detect_gopigo():
-    """Auto-detect if we should use GoPiGo mode."""
-    # First check environment variable (manual override)
-    env_value = os.getenv("USE_GOPIGO", "").lower()
-    if env_value == "true":
-        return True
-    if env_value == "false":
+def check_gopigo_platform():
+    """Verify we're running on GoPiGo/Raspberry Pi."""
+    # Check if we're on Raspberry Pi
+    if not is_raspberry_pi():
         return False
     
-    # Auto-detect: Try to import picamera2 (only available on Pi)
+    # Verify picamera2 is available
     try:
         import picamera2
-        # If we can import it, we're likely on a Pi
         return True
     except ImportError:
-        pass
-    
-    # Fallback: Check if we're on Raspberry Pi
-    return is_raspberry_pi()
+        return False
 
 #############################################
 # SETTINGS
 #############################################
-USE_GOPIGO = auto_detect_gopigo()  # Auto-detect or use .env override
+# This scanner is GoPiGo-only - exit if not on GoPiGo
+if not check_gopigo_platform():
+    print("❌ ERROR: This scanner requires GoPiGo robot with Raspberry Pi")
+    print("💡 Make sure you're running on GoPiGo with:")
+    print("   - Raspberry Pi OS")
+    print("   - Camera enabled (sudo raspi-config)")
+    print("   - picamera2 installed (pip3 install picamera2)")
+    exit(1)
+
+USE_GOPIGO = True  # Always true - we've verified we're on GoPiGo
 SCAN_FOLDER = "scans"
 DB_PATH = "scans.db"
 BRIGHTNESS_THRESHOLD = int(os.getenv("BRIGHTNESS_THRESHOLD", "180"))  # Tune if paper is too dark/light
@@ -62,84 +64,56 @@ os.makedirs(SCAN_FOLDER, exist_ok=True)
 #############################################
 # INITIALIZE CAMERA
 #############################################
-if USE_GOPIGO:
-    # ----------------------
-    # GoPiGo Camera (PiCamera2)
-    # ----------------------
-    try:
-        from picamera2 import Picamera2
-        picam = Picamera2()
-        picam.configure(picam.create_still_configuration())
-        picam.start()
-        
-        def get_frame():
-            return picam.capture_array()
-        print("✅ GoPiGo camera (PiCamera2) initialized")
-    except ImportError:
-        print("⚠️  picamera2 not available, falling back to OpenCV")
-        print("💡 Install with: pip3 install picamera2")
-        USE_GOPIGO = False
-        cam = cv2.VideoCapture(0)
-        def get_frame():
-            ret, frame = cam.read()
-            return frame if ret else None
-    except Exception as e:
-        print(f"❌ Failed to initialize PiCamera2: {e}")
-        print("💡 Check camera is enabled: sudo raspi-config → Interface Options → Camera")
-        print("💡 Falling back to OpenCV...")
-        USE_GOPIGO = False
-        cam = cv2.VideoCapture(0)
-        def get_frame():
-            ret, frame = cam.read()
-            return frame if ret else None
-else:
-    # ----------------------
-    # Mac / Windows Webcam Testing
-    # ----------------------
-    cam = cv2.VideoCapture(0)
-    if not cam.isOpened():
-        print("❌ Failed to open camera")
-        exit(1)
+# GoPiGo Camera (PiCamera2)
+try:
+    from picamera2 import Picamera2
+    picam = Picamera2()
+    picam.configure(picam.create_still_configuration())
+    picam.start()
     
     def get_frame():
-        ret, frame = cam.read()
-        return frame if ret else None
+        return picam.capture_array()
+    print("✅ GoPiGo camera (PiCamera2) initialized")
+except Exception as e:
+    print(f"❌ Failed to initialize PiCamera2: {e}")
+    print("💡 Check camera is enabled: sudo raspi-config → Interface Options → Camera")
+    print("💡 Install picamera2: pip3 install picamera2")
+    exit(1)
 
 #############################################
-# INITIALIZE LEDs (GoPiGo ONLY)
+# INITIALIZE LEDs
 #############################################
-if USE_GOPIGO:
-    try:
-        from easygopigo3 import EasyGoPiGo3
-        gpg = EasyGoPiGo3()
-        
-        def led_idle():
-            gpg.led_off("left")
-            gpg.led_off("right")
-        
-        def led_processing():
-            gpg.set_led(gpg.LED_LEFT, 255, 255, 0)   # Yellow
-            gpg.set_led(gpg.LED_RIGHT, 255, 255, 0)
-        
-        def led_success():
-            gpg.set_led(gpg.LED_LEFT, 0, 255, 0)     # Green
-            gpg.set_led(gpg.LED_RIGHT, 0, 255, 0)
-            time.sleep(1.3)
-            led_idle()
-        
-        def led_error():
-            gpg.set_led(gpg.LED_LEFT, 255, 0, 0)     # Red
-            gpg.set_led(gpg.LED_RIGHT, 255, 0, 0)
-            time.sleep(1.3)
-            led_idle()
-    except ImportError:
-        print("⚠️  easygopigo3 not available, LEDs disabled")
-        def led_idle(): pass
-        def led_processing(): pass
-        def led_success(): pass
-        def led_error(): pass
-else:
-    # On Mac: LEDs do nothing
+try:
+    from easygopigo3 import EasyGoPiGo3
+    gpg = EasyGoPiGo3()
+    
+    def led_idle():
+        gpg.led_off("left")
+        gpg.led_off("right")
+    
+    def led_processing():
+        gpg.set_led(gpg.LED_LEFT, 255, 255, 0)   # Yellow
+        gpg.set_led(gpg.LED_RIGHT, 255, 255, 0)
+    
+    def led_success():
+        gpg.set_led(gpg.LED_LEFT, 0, 255, 0)     # Green
+        gpg.set_led(gpg.LED_RIGHT, 0, 255, 0)
+        time.sleep(1.3)
+        led_idle()
+    
+    def led_error():
+        gpg.set_led(gpg.LED_LEFT, 255, 0, 0)     # Red
+        gpg.set_led(gpg.LED_RIGHT, 255, 0, 0)
+        time.sleep(1.3)
+        led_idle()
+except ImportError:
+    print("⚠️  easygopigo3 not available, LEDs disabled")
+    def led_idle(): pass
+    def led_processing(): pass
+    def led_success(): pass
+    def led_error(): pass
+except Exception as e:
+    print(f"⚠️  Failed to initialize LEDs: {e}")
     def led_idle(): pass
     def led_processing(): pass
     def led_success(): pass
@@ -188,24 +162,13 @@ def insert_scan(image_path):
 #############################################
 def main():
     print("=" * 60)
-    print("📄 Simplified Paper Scanner")
+    print("📄 GoPiGo Paper Scanner")
     print("=" * 60)
-    print(f"Mode: {'GoPiGo' if USE_GOPIGO else 'Mac/Windows'}")
     print(f"Brightness threshold: {BRIGHTNESS_THRESHOLD}")
     print(f"Scan folder: {SCAN_FOLDER}")
-    
-    # Show detection status
-    if USE_GOPIGO:
-        print("✅ Auto-detected: GoPiGo mode")
-    else:
-        print("✅ Auto-detected: Mac/Windows mode")
-        env_override = os.getenv("USE_GOPIGO", "")
-        if env_override:
-            print(f"   (USE_GOPIGO={env_override} from .env)")
-    
     print("=" * 60)
     print("\n📄 System Ready — Waiting for paper...")
-    print("Press 'q' to quit (Mac/Windows only)\n")
+    print("Press Ctrl+C to quit\n")
     
     led_idle()
     
@@ -217,13 +180,6 @@ def main():
                 led_error()
                 time.sleep(1)
                 continue
-            
-            # Preview window only for Mac testing
-            if not USE_GOPIGO:
-                cv2.imshow("Scanner Preview", frame)
-                if cv2.waitKey(1) & 0xFF == ord('q'):
-                    print("\n👋 Shutting down...")
-                    break
             
             # Detect presence of paper sheet
             if paper_present(frame):
@@ -267,9 +223,6 @@ def main():
     except KeyboardInterrupt:
         print("\n\n👋 Shutting down...")
     finally:
-        if not USE_GOPIGO:
-            cam.release()
-            cv2.destroyAllWindows()
         led_idle()
         print("✅ Scanner stopped.")
 

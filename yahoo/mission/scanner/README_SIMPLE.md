@@ -1,6 +1,6 @@
-# 📄 Simplified Paper Scanner
+# 📄 GoPiGo Paper Scanner
 
-Ultra-simple paper scanning system that detects paper and saves images.
+Ultra-simple paper scanning system for GoPiGo robot that detects paper and saves images.
 
 ## 🚀 Testing on GoPiGo
 
@@ -8,13 +8,13 @@ Ultra-simple paper scanning system that detects paper and saves images.
 - **[TEST_ON_GOPIGO.md](TEST_ON_GOPIGO.md)** - Complete detailed guide (recommended)
 - **[QUICK_TEST_STEPS.md](QUICK_TEST_STEPS.md)** - Quick 5-minute reference
 
-**⚠️ Important:** Make sure `USE_GOPIGO=true` in `.env` file to use GoPiGo camera (not Mac webcam)!
+**⚠️ Important:** This scanner is **GoPiGo robot only** - requires Raspberry Pi with camera enabled.
 
 ## Features
 
 - ✅ **Simple brightness-based paper detection**
-- ✅ **Works on GoPiGo and Mac/Windows**
-- ✅ **LED feedback on GoPiGo** (idle, processing, success, error)
+- ✅ **GoPiGo robot only** (Raspberry Pi required)
+- ✅ **LED feedback** (idle, processing, success, error)
 - ✅ **SQLite database** for scan records
 - ✅ **No external dependencies** (no WiFi, no API keys)
 - ✅ **Offline operation**
@@ -30,21 +30,15 @@ python3 setup_db.py
 
 ### 2. Run Scanner
 
-**On Mac/Windows:**
-```bash
-python3 scanner.py
-```
-
 **On GoPiGo:**
 ```bash
-# Set environment variable
-export USE_GOPIGO=true
 python3 scanner.py
 ```
 
-Or create `.env` file:
+The scanner will automatically detect it's running on GoPiGo and use the robot camera.
+
+Optional: Create `.env` file to adjust brightness threshold:
 ```env
-USE_GOPIGO=true
 BRIGHTNESS_THRESHOLD=180
 ```
 
@@ -139,27 +133,15 @@ CREATE TABLE scans (
    python3 scanner.py
    ```
 
-## Mac/Windows Testing
+## Platform Requirements
 
-**Important:** `picamera2` and `easygopigo3` are **Linux/Raspberry Pi only** and cannot be installed on Mac/Windows. The scanner will automatically use OpenCV instead.
+**This scanner is GoPiGo robot only** and requires:
+- Raspberry Pi (3B+, 4, or 5)
+- Raspberry Pi OS
+- Camera module enabled
+- GoPiGo3 robot hardware
 
-1. **Install OpenCV only:**
-   ```bash
-   pip3 install opencv-python
-   ```
-
-2. **Run scanner:**
-   ```bash
-   python3 scanner.py
-   ```
-   - Scanner will automatically detect you're on Mac/Windows
-   - Will use OpenCV webcam instead of PiCamera
-   - LEDs will be disabled (not available on Mac)
-
-3. **Preview window shows camera feed**
-4. **Press 'q' to quit**
-
-**Note:** The scanner code handles missing GoPiGo libraries gracefully - it will work on Mac without any GoPiGo-specific packages!
+The scanner will exit with an error if not running on GoPiGo.
 
 ## Example Output
 
