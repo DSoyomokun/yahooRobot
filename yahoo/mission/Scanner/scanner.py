@@ -31,8 +31,9 @@ def main():
     print("[SYSTEM] Scanner ready")
 
     while True:
-        ret, frame = cap.read()
-        if not ret:
+        # PiCamera2 only
+        frame = cap.capture_array()
+        if frame is None:
             break
 
         if state == "IDLE":
@@ -59,7 +60,8 @@ def main():
         if cv2.waitKey(1) & 0xFF == ord("q"):
             break
 
-    cap.release()
+    # Release PiCamera2
+    cap.stop()
     cv2.destroyAllWindows()
 
 if __name__ == "__main__":
