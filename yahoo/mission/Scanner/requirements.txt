@@ -1,0 +1,12 @@
+# GoPiGo Scanner Requirements
+# This scanner is GoPiGo robot only - requires Raspberry Pi
+
+# Core dependencies
+opencv-python-headless>=4.5.0  # For image processing (not camera)
+python-dotenv>=0.19.0
+
+# GoPiGo dependencies (required on robot)
+picamera2>=0.3.0
+easygopigo3>=1.0.0
+
+

@@ -71,3 +71,11 @@ yahoo/mission/scanner/tests/captured_images/detection_visualization/*
 !yahoo/mission/scanner/tests/captured_images/raw_captured/.gitkeep
 !yahoo/mission/scanner/tests/captured_images/detection_visualization/.gitkeep
 
+# Scanner output directories (keep structure, ignore contents)
+scans/raw/*
+scans/warped/*
+scans/name_crops/*
+!scans/raw/.gitkeep
+!scans/warped/.gitkeep
+!scans/name_crops/.gitkeep
+
