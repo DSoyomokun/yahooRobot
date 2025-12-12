@@ -2,6 +2,14 @@
 
 Ultra-simple paper scanning system that detects paper and saves images.
 
+## 🚀 Testing on GoPiGo
+
+**For step-by-step GoPiGo testing instructions, see:**
+- **[TEST_ON_GOPIGO.md](TEST_ON_GOPIGO.md)** - Complete detailed guide (recommended)
+- **[QUICK_TEST_STEPS.md](QUICK_TEST_STEPS.md)** - Quick 5-minute reference
+
+**⚠️ Important:** Make sure `USE_GOPIGO=true` in `.env` file to use GoPiGo camera (not Mac webcam)!
+
 ## Features
 
 - ✅ **Simple brightness-based paper detection**
@@ -133,7 +141,9 @@ CREATE TABLE scans (
 
 ## Mac/Windows Testing
 
-1. **Install OpenCV:**
+**Important:** `picamera2` and `easygopigo3` are **Linux/Raspberry Pi only** and cannot be installed on Mac/Windows. The scanner will automatically use OpenCV instead.
+
+1. **Install OpenCV only:**
    ```bash
    pip3 install opencv-python
    ```
@@ -142,9 +152,14 @@ CREATE TABLE scans (
    ```bash
    python3 scanner.py
    ```
+   - Scanner will automatically detect you're on Mac/Windows
+   - Will use OpenCV webcam instead of PiCamera
+   - LEDs will be disabled (not available on Mac)
 
 3. **Preview window shows camera feed**
 4. **Press 'q' to quit**
+
+**Note:** The scanner code handles missing GoPiGo libraries gracefully - it will work on Mac without any GoPiGo-specific packages!
 
 ## Example Output
 

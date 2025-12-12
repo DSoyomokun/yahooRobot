@@ -8,11 +8,48 @@ import sqlite3
 import time
 import datetime
 import os
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
+
+#############################################
+# AUTO-DETECT PLATFORM
+#############################################
+def is_raspberry_pi():
+    """Detect if running on Raspberry Pi by checking /proc/cpuinfo."""
+    try:
+        with open('/proc/cpuinfo', 'r') as f:
+            if 'Raspberry Pi' in f.read():
+                return True
+    except:
+        pass
+    return False
+
+def auto_detect_gopigo():
+    """Auto-detect if we should use GoPiGo mode."""
+    # First check environment variable (manual override)
+    env_value = os.getenv("USE_GOPIGO", "").lower()
+    if env_value == "true":
+        return True
+    if env_value == "false":
+        return False
+    
+    # Auto-detect: Try to import picamera2 (only available on Pi)
+    try:
+        import picamera2
+        # If we can import it, we're likely on a Pi
+        return True
+    except ImportError:
+        pass
+    
+    # Fallback: Check if we're on Raspberry Pi
+    return is_raspberry_pi()
 
 #############################################
 # SETTINGS
 #############################################
-USE_GOPIGO = os.getenv("USE_GOPIGO", "false").lower() == "true"  # Set to True on GoPiGo
+USE_GOPIGO = auto_detect_gopigo()  # Auto-detect or use .env override
 SCAN_FOLDER = "scans"
 DB_PATH = "scans.db"
 BRIGHTNESS_THRESHOLD = int(os.getenv("BRIGHTNESS_THRESHOLD", "180"))  # Tune if paper is too dark/light
@@ -37,8 +74,19 @@ if USE_GOPIGO:
         
         def get_frame():
             return picam.capture_array()
+        print("✅ GoPiGo camera (PiCamera2) initialized")
     except ImportError:
         print("⚠️  picamera2 not available, falling back to OpenCV")
+        print("💡 Install with: pip3 install picamera2")
+        USE_GOPIGO = False
+        cam = cv2.VideoCapture(0)
+        def get_frame():
+            ret, frame = cam.read()
+            return frame if ret else None
+    except Exception as e:
+        print(f"❌ Failed to initialize PiCamera2: {e}")
+        print("💡 Check camera is enabled: sudo raspi-config → Interface Options → Camera")
+        print("💡 Falling back to OpenCV...")
         USE_GOPIGO = False
         cam = cv2.VideoCapture(0)
         def get_frame():
@@ -145,6 +193,16 @@ def main():
     print(f"Mode: {'GoPiGo' if USE_GOPIGO else 'Mac/Windows'}")
     print(f"Brightness threshold: {BRIGHTNESS_THRESHOLD}")
     print(f"Scan folder: {SCAN_FOLDER}")
+    
+    # Show detection status
+    if USE_GOPIGO:
+        print("✅ Auto-detected: GoPiGo mode")
+    else:
+        print("✅ Auto-detected: Mac/Windows mode")
+        env_override = os.getenv("USE_GOPIGO", "")
+        if env_override:
+            print(f"   (USE_GOPIGO={env_override} from .env)")
+    
     print("=" * 60)
     print("\n📄 System Ready — Waiting for paper...")
     print("Press 'q' to quit (Mac/Windows only)\n")
@@ -217,4 +275,5 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 

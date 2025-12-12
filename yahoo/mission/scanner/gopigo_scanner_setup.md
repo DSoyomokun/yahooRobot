@@ -28,8 +28,7 @@ ssh pi@10.10.10.10
 ### Option A: Git Pull (Recommended)
 
 ```bash
-# On GoPiGo (via SSH)
-cd ~/yahooRobot
+# On GoPiGo (via SSH)`
 git checkout main
 git pull origin main
 ```
@@ -51,9 +50,11 @@ cd ~/yahooRobot
 
 # Install Python packages
 pip3 install opencv-python-headless  # Use headless version on Pi
-pip3 install picamera2                # For Pi Camera
-pip3 install easygopigo3             # For GoPiGo LEDs
+pip3 install picamera2                # For Pi Camera (Linux/Raspberry Pi only)
+pip3 install easygopigo3             # For GoPiGo LEDs (Linux/Raspberry Pi only)
 ```
+
+**⚠️ Important:** These packages (`picamera2` and `easygopigo3`) are **Linux/Raspberry Pi only** and cannot be installed on Mac/Windows. Only install them on the GoPiGo robot!
 
 ---
 
