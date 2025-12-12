@@ -74,7 +74,6 @@ BRIGHTNESS_THRESHOLD=180      # Adjust if paper not detected (higher = brighter 
 
 - **Paper not detected?** → Lower threshold (try 150-170)
 - **False positives?** → Raise threshold (try 190-210)
-- **Test with preview** (Mac/Windows shows camera feed)
 
 ## File Structure
 
