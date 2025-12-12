@@ -107,3 +107,4 @@ if __name__ == "__main__":
     api_key = os.getenv('OPENAI_API_KEY')
     test_bubble_accuracy(image_path, expected, api_key=api_key)
 
+

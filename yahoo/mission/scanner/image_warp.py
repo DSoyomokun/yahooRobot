@@ -1,15 +1,13 @@
-# mission/scanner/preprocess.py
+# mission/scanner/image_warp.py
 """
-Simplified preprocessing pipeline for paper scanning:
-1. Detect printed form edges (ignores physical page edges)
-2. Perspective-transform sheet to normalized 1700x2550 frame
-
-Note: Removed bubble detection preprocessing - only warping needed for name detection.
+Simplified image preprocessing - only warping to standard size.
+Removed bubble-specific preprocessing (thresholding, etc.).
 """
 
 import cv2
 import numpy as np
 from .config import WARPED_WIDTH, WARPED_HEIGHT
+
 
 # ------------------------------------------------------------
 # Utility: Order 4 points (top-left, top-right, bottom-right, bottom-left)
@@ -94,43 +92,16 @@ def warp_form(img_color, form_pts):
 
 
 # ------------------------------------------------------------
-# Simplified: Only warping needed (no thresholding for bubbles)
+# MAIN ENTRYPOINT - Simplified preprocessing
 # ------------------------------------------------------------
 def warp_form_to_standard(img_color):
     """
-    Detect form and warp to standard size for name detection.
-    
-    Args:
-        img_color: Raw BGR image from camera
-    
-    Returns:
-        warped_color: Normalized warped image (1700x2550)
-    """
-    gray = cv2.cvtColor(img_color, cv2.COLOR_BGR2GRAY)
-    
-    # Detect printed form edges
-    form_pts = detect_form_contour(gray)
-    
-    # Warp to normalized resolution
-    warped_color = warp_form(img_color, form_pts)
-    
-    return warped_color
-
-
-# ------------------------------------------------------------
-# MAIN ENTRYPOINT for pipeline
-# ------------------------------------------------------------
-def preprocess_image(img_color):
-    """
-    Full preprocessing pipeline.
-    Input: BGR color image from PiCam or Mac webcam
-    Returns:
-        warped_color  — normalized sheet in color
-        warped_gray   — grayscale warped version
-        warped_thresh — thresholded for bubble detection
+    Simplified preprocessing: only warps form to standard size.
+    Input: BGR color image from camera
+    Returns: warped_color - normalized sheet in color (1700x2550)
     """
     if img_color is None:
-        raise Exception("Input image is None in preprocess_image()")
+        raise Exception("Input image is None")
 
     gray = cv2.cvtColor(img_color, cv2.COLOR_BGR2GRAY)
 
@@ -140,8 +111,6 @@ def preprocess_image(img_color):
     # 2. Warp to normalized resolution
     warped_color = warp_form(img_color, form_pts)
 
-    # 3. Normalize illumination + threshold
-    warped_gray, warped_thresh = normalize_and_threshold(warped_color)
+    return warped_color
 
-    return warped_color, warped_gray, warped_thresh
 

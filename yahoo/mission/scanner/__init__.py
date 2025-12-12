@@ -1,11 +1,22 @@
 """
-Scanner module for test paper processing.
+Simplified scanner module for paper scanning with weight sensor.
 """
 
-# Import main function (lazy import to avoid circular dependencies)
-def process_test_image(*args, **kwargs):
-    """Main entry point for processing test images."""
-    from .pipeline import process_test_image as _process_test_image
-    return _process_test_image(*args, **kwargs)
+# Main entry point
+from .scan_paper import main as scan_paper_main
 
-__all__ = ['process_test_image']
+# Simplified pipeline
+from .simple_pipeline import process_paper_scan
+
+# Components
+from .camera_capture import CameraCapture, capture_image
+from .weight_sensor_mock import MockWeightSensor, HX711WeightSensor
+
+__all__ = [
+    'scan_paper_main',
+    'process_paper_scan',
+    'CameraCapture',
+    'capture_image',
+    'MockWeightSensor',
+    'HX711WeightSensor',
+]

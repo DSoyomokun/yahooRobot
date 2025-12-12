@@ -46,3 +46,4 @@ def grade_test(detected_answers):
         "percentage": percentage,
         "total_questions": total_q
     }
+

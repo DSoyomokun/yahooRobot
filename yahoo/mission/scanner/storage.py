@@ -38,6 +38,20 @@ def init_db():
     cur = conn.cursor()
 
     cur.execute("""
+        CREATE TABLE IF NOT EXISTS paper_scans (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            timestamp TEXT,
+            image_path TEXT,
+            student_name TEXT,
+            ocr_raw TEXT,
+            ocr_confidence REAL,
+            processed INTEGER,
+            weight_grams REAL
+        )
+    """)
+    
+    # Keep old table for backward compatibility (can be removed later)
+    cur.execute("""
         CREATE TABLE IF NOT EXISTS test_results (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             timestamp TEXT,
@@ -78,52 +92,118 @@ def save_image(img, folder, prefix):
 # ----------------------------------------------------------
 # Insert a full test result into DB
 # ----------------------------------------------------------
-def store_result(
-    student_name,
-    ocr_raw,
-    ocr_confidence,
-    ocr_mode,
-    needs_review,
-    answers,
-    correctness,
-    score,
-    percentage,
-    raw_image_path,
-    warped_image_path,
-    name_crop_path
-):
+def save_paper_scan(image_path, student_name=None, ocr_raw=None, ocr_confidence=None, weight_grams=None):
     """
-    Insert one completed scan result into DB.
+    Save a paper scan to the database.
+    
+    Args:
+        image_path: Path to saved image
+        student_name: Detected student name (None if not processed)
+        ocr_raw: Raw OCR text
+        ocr_confidence: OCR confidence score
+        weight_grams: Weight detected by sensor
+    
+    Returns:
+        row_id: ID of inserted record
     """
+    conn = sqlite3.connect(DB_PATH)
+    cur = conn.cursor()
 
+    processed = 1 if student_name and student_name != "UNKNOWN" else 0
+
+    cur.execute("""
+        INSERT INTO paper_scans (
+            timestamp, image_path, student_name, ocr_raw, 
+            ocr_confidence, processed, weight_grams
+        )
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+    """, (
+        datetime.now().isoformat(),
+        image_path,
+        student_name,
+        ocr_raw,
+        ocr_confidence,
+        processed,
+        weight_grams
+    ))
+
+    row_id = cur.lastrowid
+    conn.commit()
+    conn.close()
+    
+    return row_id
+
+
+def get_unprocessed_scans():
+    """
+    Get all scans that haven't been processed (no student name).
+    Useful for batch processing when WiFi reconnects.
+    
+    Returns:
+        List of scan records
+    """
     conn = sqlite3.connect(DB_PATH)
     cur = conn.cursor()
 
     cur.execute("""
-        INSERT INTO test_results (
-            timestamp, student_name, ocr_raw, ocr_confidence, ocr_mode,
-            needs_review, answers_json, correctness_json, score, percentage,
-            raw_image_path, warped_image_path, name_crop_path
-        )
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    """, (
-        datetime.now().isoformat(),
+        SELECT id, timestamp, image_path 
+        FROM paper_scans 
+        WHERE processed = 0
+        ORDER BY timestamp
+    """)
+
+    results = cur.fetchall()
+    conn.close()
+    
+    return results
+
+
+# Legacy function for backward compatibility
+def store_result(
         student_name,
         ocr_raw,
         ocr_confidence,
         ocr_mode,
-        1 if needs_review else 0,
-        json.dumps(answers),          # store dict as JSON
-        json.dumps(correctness),
+        needs_review,
+        answers,
+        correctness,
         score,
         percentage,
         raw_image_path,
         warped_image_path,
         name_crop_path
-    ))
+    ):
+        """
+        Legacy function - kept for backward compatibility.
+        """
+        conn = sqlite3.connect(DB_PATH)
+        cur = conn.cursor()
 
-    conn.commit()
-    conn.close()
+        cur.execute("""
+            INSERT INTO test_results (
+                timestamp, student_name, ocr_raw, ocr_confidence, ocr_mode,
+                needs_review, answers_json, correctness_json, score, percentage,
+                raw_image_path, warped_image_path, name_crop_path
+            )
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """, (
+            datetime.now().isoformat(),
+            student_name,
+            ocr_raw,
+            ocr_confidence,
+            ocr_mode,
+            1 if needs_review else 0,
+            json.dumps(answers),
+            json.dumps(correctness),
+            score,
+            percentage,
+            raw_image_path,
+            warped_image_path,
+            name_crop_path
+        ))
+
+        conn.commit()
+        conn.close()
 
 
 # ----------------------------------------------------------

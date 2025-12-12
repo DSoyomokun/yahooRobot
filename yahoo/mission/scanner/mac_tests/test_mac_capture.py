@@ -35,3 +35,4 @@ def capture_from_webcam():
 
 if __name__ == "__main__":
     capture_from_webcam()
+

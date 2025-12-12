@@ -68,3 +68,4 @@ if __name__ == "__main__":
     
     test_all_images_in_directory(args.dir, api_key=args.api_key)
 
+
