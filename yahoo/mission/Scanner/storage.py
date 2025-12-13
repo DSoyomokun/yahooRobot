@@ -30,3 +30,4 @@ def insert_scan(image_path: str):
     conn.commit()
     conn.close()
 
+
