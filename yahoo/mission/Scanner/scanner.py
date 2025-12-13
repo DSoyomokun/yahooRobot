@@ -132,6 +132,9 @@ class Scanner:
             self.cap.release()
             self.cap = None
         
+        # Ensure state is reset
+        self.state = ScannerState.IDLE
+        
         print(f"[SCANNER] Stopped. Total scans: {self.scan_count}")
     
     def _run_loop(self):
