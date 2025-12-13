@@ -13,11 +13,12 @@ class CameraConfig:
 
 # Logical cameras for the robot
 # /dev/video0 → CSI Pi Camera (IMX219)
+# Using 1280x720 for stability (high res like 1700x2550 can cause segfaults)
 CSI_CAMERA = CameraConfig(
     name="pi_csi",
     index=0,
-    width=1700,
-    height=2550,
+    width=1280,
+    height=720,
 )
 
 # /dev/video1 → USB webcam (primary node)
