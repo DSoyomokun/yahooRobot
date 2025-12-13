@@ -1,64 +1,97 @@
+#!/usr/bin/env python3
 """
-View stored scans from database.
-Displays all scans with images.
+View or transfer scanned images
+Options: list scans, transfer to Mac, or view on Pi (if X11 available)
 """
-import sqlite3
-import cv2
+import sys
+from pathlib import Path
 import os
 
-DB_PATH = "scans.db"
+# Add project root to path
+_script_dir = Path(__file__).parent.resolve()
+_project_root = _script_dir.parent.parent.parent
+if str(_project_root) not in sys.path:
+    sys.path.insert(0, str(_project_root))
+
+scans_dir = _script_dir / "scans"
+
+def list_scans():
+    """List all scan files."""
+    if not scans_dir.exists():
+        print(f"❌ Scans directory not found: {scans_dir}")
+        return []
+    
+    jpg_files = sorted(scans_dir.glob("*.jpg"))
+    return jpg_files
 
 def main():
-    if not os.path.exists(DB_PATH):
-        print("❌ Database not found. Run setup_db.py first.")
+    print("=" * 70)
+    print("📸 SCANNED IMAGES")
+    print("=" * 70)
+    print()
+    
+    scans = list_scans()
+    
+    if not scans:
+        print("⚠️  No scan images found")
+        print(f"   Directory: {scans_dir}")
         return
     
-    conn = sqlite3.connect(DB_PATH)
-    cursor = conn.cursor()
+    print(f"📁 Found {len(scans)} scan(s) in: {scans_dir}")
+    print()
     
-    cursor.execute("SELECT id, image_path, timestamp FROM scans ORDER BY id DESC")
-    rows = cursor.fetchall()
+    # List all scans
+    print("Scanned images:")
+    print("-" * 70)
+    for i, scan_file in enumerate(scans, 1):
+        size = scan_file.stat().st_size
+        size_kb = size / 1024
+        print(f"  {i}. {scan_file.name} ({size_kb:.1f} KB)")
+    print()
     
-    if not rows:
-        print("📭 No scans found in database.")
-        conn.close()
-        return
+    # Instructions for viewing
+    print("=" * 70)
+    print("📥 HOW TO VIEW IMAGES")
+    print("=" * 70)
+    print()
     
-    print("\n" + "=" * 60)
-    print(f"📋 STORED SCANS ({len(rows)} total)")
-    print("=" * 60)
+    print("Option 1: Transfer to Mac (Recommended)")
+    print("-" * 70)
+    print("From your Mac terminal (while on GoPiGo WiFi):")
+    print()
+    print("  # Transfer all scans to your Mac")
+    print(f"  scp pi@10.10.10.10:~/yahooRobot/yahoo/mission/scanner/scans/*.jpg ~/Desktop/scans/")
+    print()
+    print("  # Or transfer specific file")
+    print(f"  scp pi@10.10.10.10:~/yahooRobot/yahoo/mission/scanner/scans/scan_0001.jpg ~/Desktop/")
+    print()
+    print("  # Create directory first if needed")
+    print("  mkdir -p ~/Desktop/scans")
+    print()
     
-    for scan in rows:
-        scan_id, image_path, timestamp = scan
-        print(f"\nScan #{scan_id}")
-        print(f"  Image: {image_path}")
-        print(f"  Time: {timestamp}")
-        
-        # Check if image exists
-        if os.path.exists(image_path):
-            img = cv2.imread(image_path)
-            if img is not None:
-                # Resize if too large for display
-                h, w = img.shape[:2]
-                if w > 1200 or h > 800:
-                    scale = min(1200/w, 800/h)
-                    new_w = int(w * scale)
-                    new_h = int(h * scale)
-                    img = cv2.resize(img, (new_w, new_h))
-                
-                cv2.imshow(f"Scan #{scan_id} - {timestamp}", img)
-                print(f"  ✅ Image displayed (press any key to continue)")
-                cv2.waitKey(0)
-                cv2.destroyAllWindows()
-            else:
-                print(f"  ⚠️  Could not load image")
-        else:
-            print(f"  ❌ Image file not found")
+    print("Option 2: View on Pi (requires X11 forwarding)")
+    print("-" * 70)
+    print("From your Mac:")
+    print("  1. Use: robopi_x  (SSH with X11 forwarding)")
+    print("  2. Install image viewer: sudo apt-get install feh")
+    print("  3. View: feh scans/scan_0001.jpg")
+    print()
     
-    conn.close()
-    print("\n✅ Done viewing scans.")
+    print("Option 3: Quick file info")
+    print("-" * 70)
+    print("  # Check file sizes")
+    print(f"  ls -lh {scans_dir}/")
+    print()
+    print("  # View latest scan info")
+    if scans:
+        latest = scans[-1]
+        print(f"  file {latest}")
+        print(f"  ls -lh {latest}")
+    print()
+    
+    print("=" * 70)
+    print(f"✅ Total scans: {len(scans)}")
+    print("=" * 70)
 
 if __name__ == "__main__":
     main()
-
-
