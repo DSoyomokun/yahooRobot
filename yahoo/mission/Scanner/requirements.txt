@@ -6,9 +6,10 @@ opencv-python-headless>=4.5.0  # For camera and image processing
 python-dotenv>=0.19.0          # For .env file support (optional)
 
 # GoPiGo dependencies (required on robot)
+picamera2>=0.3.0               # Preferred for CSI camera (auto-detected, falls back to OpenCV if not available)
 easygopigo3>=1.0.0              # For GoPiGo LEDs
 
-# Note: Scanner uses OpenCV VideoCapture with CSI_CAMERA config
-# No picamera2 needed - uses existing camera infrastructure
+# Note: Scanner automatically uses picamera2 for CSI camera if available,
+# otherwise falls back to OpenCV VideoCapture
 
 

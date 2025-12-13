@@ -50,13 +50,14 @@ cd ~/yahooRobot
 
 # Install Python packages
 pip3 install opencv-python-headless  # For camera and image processing
-pip3 install easygopigo3             # For GoPiGo LEDs (Linux/Raspberry Pi only)
+pip3 install picamera2                # Preferred for CSI camera (auto-detected)
+pip3 install easygopigo3              # For GoPiGo LEDs (Linux/Raspberry Pi only)
 pip3 install python-dotenv            # For .env file support (optional)
 ```
 
 **⚠️ Important:** 
-- `easygopigo3` is **Linux/Raspberry Pi only** and cannot be installed on Mac/Windows
-- **No picamera2 needed** - Scanner uses OpenCV VideoCapture with CSI camera (`/dev/video0`)
+- `picamera2` and `easygopigo3` are **Linux/Raspberry Pi only** and cannot be installed on Mac/Windows
+- Scanner automatically uses `picamera2` for CSI camera if available, otherwise falls back to OpenCV VideoCapture
 - Only install these packages on the GoPiGo robot!
 
 ---
@@ -93,27 +94,15 @@ libcamera-still -o test.jpg
 
 ---
 
-## 🎯 Step 6: Configure Scanner
+## 🎯 Step 6: Verify Scanner Configuration
 
-Create `.env` file (optional, or use environment variables):
+The scanner automatically uses `CSI_CAMERA` from `yahoo/config/cameras.py`:
+- Camera: `/dev/video0` (CSI Pi Camera)
+- Resolution: 1700x2550 (optimized for scanning)
 
-```bash
-# On GoPiGo
-cd ~/yahooRobot/yahoo/mission/scanner
-nano .env
-```
+**No configuration needed!** The scanner is ready to use.
 
-Add:
-```env
-USE_GOPIGO=true
-BRIGHTNESS_THRESHOLD=180
-```
-
-Or set environment variable:
-```bash
-export USE_GOPIGO=true
-export BRIGHTNESS_THRESHOLD=180
-```
+Optional: Adjust camera resolution in `yahoo/config/cameras.py` if needed.
 
 ---
 
