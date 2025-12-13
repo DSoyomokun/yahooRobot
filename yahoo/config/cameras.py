@@ -16,8 +16,8 @@ class CameraConfig:
 CSI_CAMERA = CameraConfig(
     name="pi_csi",
     index=0,
-    width=320,
-    height=240,
+    width=1700,
+    height=2550,
 )
 
 # /dev/video1 → USB webcam (primary node)

@@ -544,7 +544,6 @@ def main():
                     logger.info("=" * 60)
                     logger.info("✅ Movement complete!")
                     logger.info("=" * 60)
-                    
 
                 except Exception as e:
                     logger.error(f"Movement error: {e}")
