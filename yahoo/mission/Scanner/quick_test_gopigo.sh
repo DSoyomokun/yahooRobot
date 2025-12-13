@@ -14,9 +14,10 @@ fi
 
 # Step 1: Install dependencies
 echo "📦 Installing dependencies..."
-pip3 install -q opencv-python-headless picamera2 easygopigo3 python-dotenv 2>/dev/null || {
+pip3 install -q opencv-python-headless easygopigo3 python-dotenv 2>/dev/null || {
     echo "⚠️  Some packages may already be installed or need sudo"
 }
+echo "✅ Note: Scanner uses OpenCV VideoCapture - no picamera2 needed"
 
 # Step 2: Setup database
 echo ""

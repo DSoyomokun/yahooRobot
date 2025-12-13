@@ -49,27 +49,19 @@ python3 scanner.py
 
 **Expected Output:**
 ```
-============================================================
-📄 GoPiGo Paper Scanner
-============================================================
-Brightness threshold: 180
-Scan folder: scans
-============================================================
-
-✅ GoPiGo camera (PiCamera2) initialized
-📄 System Ready — Waiting for paper...
-Press Ctrl+C to quit
+[SYSTEM] Scanner ready
 ```
 
 **✅ Pass Criteria:**
-- Shows "GoPiGo Paper Scanner" (not Mac/Windows)
-- Camera initializes successfully
-- No errors about missing picamera2
+- Scanner starts without errors
+- Camera opens successfully (no error messages)
+- Preview window opens (if using `robopi_x`)
+- Ready to detect paper
 
 **❌ Fail Criteria:**
-- Shows error about not being on GoPiGo
 - Camera initialization fails
-- Missing picamera2 error
+- Error opening `/dev/video0`
+- Missing OpenCV error
 
 ---
 
@@ -479,10 +471,10 @@ Timestamp: _____
 - Scanner stays in idle state
 
 **Solutions:**
-1. Lower brightness threshold: `echo "BRIGHTNESS_THRESHOLD=150" > .env`
-2. Improve lighting conditions
-3. Ensure paper is centered in camera view
-4. Check camera view with: `libcamera-still -o test.jpg`
+1. Improve lighting conditions
+2. Ensure paper is centered in camera view
+3. Check camera view: `libcamera-still -o test.jpg` or test with OpenCV
+4. Adjust detector threshold in `detector.py` if needed
 
 ---
 
@@ -508,8 +500,8 @@ Timestamp: _____
 **Solutions:**
 1. Enable camera: `sudo raspi-config` → Interface Options → Camera
 2. Reboot: `sudo reboot`
-3. Install picamera2: `pip3 install picamera2`
-4. Test camera: `libcamera-still -o test.jpg`
+3. Install OpenCV: `pip3 install opencv-python-headless`
+4. Test camera: `libcamera-still -o test.jpg` or check `/dev/video0` exists
 
 ---
 

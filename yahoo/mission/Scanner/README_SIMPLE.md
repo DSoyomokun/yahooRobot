@@ -118,7 +118,7 @@ CREATE TABLE scans (
 
 1. **Install dependencies:**
    ```bash
-   pip3 install picamera2 easygopigo3
+   pip3 install opencv-python-headless easygopigo3
    ```
 
 2. **Enable camera:**
@@ -129,9 +129,11 @@ CREATE TABLE scans (
 
 3. **Run scanner:**
    ```bash
-   export USE_GOPIGO=true
-   python3 scanner.py
+   # From repo root:
+   PYTHONPATH=. python3 yahoo/mission/scanner/scanner.py
    ```
+
+**Note:** Scanner uses `CSI_CAMERA` from `yahoo/config/cameras.py` which opens `/dev/video0` via OpenCV VideoCapture. No picamera2 needed!
 
 ## Platform Requirements
 

@@ -49,12 +49,15 @@ scp -r yahoo/mission/scanner/* pi@10.10.10.10:~/yahooRobot/yahoo/mission/scanner
 cd ~/yahooRobot
 
 # Install Python packages
-pip3 install opencv-python-headless  # Use headless version on Pi
-pip3 install picamera2                # For Pi Camera (Linux/Raspberry Pi only)
+pip3 install opencv-python-headless  # For camera and image processing
 pip3 install easygopigo3             # For GoPiGo LEDs (Linux/Raspberry Pi only)
+pip3 install python-dotenv            # For .env file support (optional)
 ```
 
-**⚠️ Important:** These packages (`picamera2` and `easygopigo3`) are **Linux/Raspberry Pi only** and cannot be installed on Mac/Windows. Only install them on the GoPiGo robot!
+**⚠️ Important:** 
+- `easygopigo3` is **Linux/Raspberry Pi only** and cannot be installed on Mac/Windows
+- **No picamera2 needed** - Scanner uses OpenCV VideoCapture with CSI camera (`/dev/video0`)
+- Only install these packages on the GoPiGo robot!
 
 ---
 
@@ -205,15 +208,19 @@ scp pi@10.10.10.10:~/yahooRobot/yahoo/mission/scanner/scans/*.jpg ~/Desktop/scan
 
 ### Import Errors
 
-**Problem:** "ModuleNotFoundError: No module named 'picamera2'"
+**Problem:** "ModuleNotFoundError: No module named 'cv2'"
 
 **Solutions:**
 ```bash
-pip3 install picamera2
-# Or if that fails:
-sudo apt-get update
-sudo apt-get install python3-picamera2
+pip3 install opencv-python-headless
 ```
+
+**Problem:** Camera not opening
+
+**Solutions:**
+- Check camera is enabled: `sudo raspi-config` → Interface Options → Camera
+- Test camera: `libcamera-still -o test.jpg`
+- Verify `/dev/video0` exists: `ls -l /dev/video0`
 
 ---
 

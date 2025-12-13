@@ -90,26 +90,15 @@ If you get an error, the file might not exist. See **Troubleshooting** below.
 
 ---
 
-## ⚙️ Step 6: Configure for GoPiGo Camera
+## ⚙️ Step 6: Verify Camera Configuration
 
 **On GoPiGo:**
 
-```bash
-# Create .env file with GoPiGo settings
-echo "USE_GOPIGO=true" > .env
-echo "BRIGHTNESS_THRESHOLD=180" >> .env
+The scanner automatically uses `CSI_CAMERA` from `yahoo/config/cameras.py` which points to `/dev/video0` (CSI Pi Camera).
 
-# Verify it was created correctly
-cat .env
-```
+**No configuration needed!** The scanner uses the existing camera config.
 
-**Expected output:**
-```
-USE_GOPIGO=true
-BRIGHTNESS_THRESHOLD=180
-```
-
-**⚠️ CRITICAL:** This tells the scanner to use the GoPiGo camera, not Mac webcam!
+Optional: You can adjust camera resolution in `yahoo/config/cameras.py` if needed.
 
 ---
 
@@ -148,10 +137,14 @@ If `test_camera.jpg` exists, camera is working! ✅
 
 ```bash
 # Install required packages
-pip3 install opencv-python-headless picamera2 easygopigo3 python-dotenv
+pip3 install opencv-python-headless easygopigo3 python-dotenv
 ```
 
-**Note:** These packages are Linux/Raspberry Pi only and won't work on Mac.
+**Note:** 
+- `opencv-python-headless` - For camera and image processing
+- `easygopigo3` - For GoPiGo LEDs (Linux/Raspberry Pi only)
+- `python-dotenv` - For .env file support (optional)
+- **No picamera2 needed** - Scanner uses OpenCV VideoCapture with CSI camera
 
 ---
 
@@ -165,26 +158,14 @@ python3 scanner.py
 
 **Expected output:**
 ```
-============================================================
-📄 Simplified Paper Scanner
-============================================================
-Mode: GoPiGo
-Brightness threshold: 180
-Scan folder: scans
-============================================================
-
-📄 System Ready — Waiting for paper...
-
-Press 'q' to quit (Mac/Windows only)
+[SYSTEM] Scanner ready
 ```
 
-**✅ Key indicator:** It should say **"Mode: GoPiGo"** (not "Mode: Mac/Windows")
-
-If it says "Mode: Mac/Windows", check your `.env` file:
-```bash
-cat .env
-# Should show: USE_GOPIGO=true
-```
+**✅ Key indicators:**
+- Scanner starts without errors
+- Camera opens successfully (no error messages)
+- Preview window opens (if using `robopi_x`)
+- Ready to detect paper
 
 ---
 
@@ -409,7 +390,8 @@ python3 view_scans.py
 
 ## 📝 Notes
 
-- **GoPiGo mode:** Uses `picamera2` for camera, `easygopigo3` for LEDs
+- **Camera:** Uses OpenCV VideoCapture with `CSI_CAMERA` config (`/dev/video0`)
+- **LEDs:** Uses `easygopigo3` for LED feedback
 - **Mac mode:** Uses OpenCV webcam, no LEDs
 - **Database:** All scans stored in `scans.db`
 - **Images:** Saved to `scans/` folder

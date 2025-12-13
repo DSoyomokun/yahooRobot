@@ -15,18 +15,17 @@ robopi
 
 ### 2. Navigate & Setup
 ```bash
-cd ~/yahooRobot/yahoo/mission/scanner
-python3 setup_db.py
-echo "USE_GOPIGO=true" > .env
-echo "BRIGHTNESS_THRESHOLD=180" >> .env
+cd ~/yahooRobot
+python3 yahoo/mission/scanner/storage.py  # Initialize DB (if needed)
 ```
 
 ### 3. Run Scanner
 ```bash
-python3 scanner.py
+# From repo root:
+PYTHONPATH=. python3 yahoo/mission/scanner/scanner.py
 ```
 
-**✅ Check:** Should say **"Mode: GoPiGo"** (not Mac/Windows)
+**✅ Check:** Should see `[SYSTEM] Scanner ready` and camera opens successfully
 
 ### 4. Test It!
 - Place white paper in front of camera
@@ -43,13 +42,13 @@ python3 verify_scanner.py
 
 ## ⚠️ Common Issues
 
-**Problem:** Says "Mode: Mac/Windows"
-- **Fix:** `cat .env` - should show `USE_GOPIGO=true`
-- **Fix:** `echo "USE_GOPIGO=true" > .env`
+**Problem:** Camera not opening
+- **Fix:** Check camera is enabled: `sudo raspi-config` → Interface Options → Camera → Enable
+- **Fix:** Test camera: `libcamera-still -o test.jpg`
+- **Fix:** Reboot if needed: `sudo reboot`
 
-**Problem:** Camera not working
-- **Fix:** `sudo raspi-config` → Interface Options → Camera → Enable
-- **Fix:** Reboot: `sudo reboot`
+**Problem:** OpenCV not installed
+- **Fix:** `pip3 install opencv-python-headless`
 
 **Problem:** Files missing
 - **Fix:** On Mac: `deploypi` (while on GoPiGo WiFi)
