@@ -66,8 +66,9 @@ def main():
                     # Save image
                     cv2.imwrite(str(filename), frame)
                     
-                    # Save to database
-                    insert_scan(str(filename))
+                    # Save to database (use relative path from scanner directory)
+                    rel_path = filename.relative_to(_script_dir)
+                    insert_scan(str(rel_path))
                     
                     print(f"[SCAN] Captured scan #{scan_count}: {filename.name}")
                     
