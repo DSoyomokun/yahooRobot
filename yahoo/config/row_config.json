@@ -1,0 +1,77 @@
+{
+  "_description": "Classroom desk layout configuration for Yahoo Robot",
+  "_layout_notes": [
+    "2 tables with 2 chairs each (4 desks total)",
+    "Table 1 (183cm) - GAP (89cm) - Table 2 (183cm)",
+    "Chairs positioned at table ends, behind tables",
+    "Origin positioned in gap, pointing forward toward desks",
+    "Robot path: Origin -> D1 -> D2 -> D3 -> D4 -> Origin"
+  ],
+
+  "origin": {
+    "x_cm": 0.0,
+    "y_cm": 0.0,
+    "heading_deg": 0.0,
+    "description": "Starting position in gap between tables, facing forward"
+  },
+
+  "desk_distance_forward_cm": 100.0,
+  "_desk_distance_note": "Distance from origin to desk line (Y-axis). MEASURE THIS and update!",
+
+  "desks": [
+    {
+      "id": 1,
+      "name": "Desk 1 (Left of Table 1)",
+      "x_cm": -227.5,
+      "y_cm": 100.0,
+      "description": "Leftmost desk, left end of Table 1"
+    },
+    {
+      "id": 2,
+      "name": "Desk 2 (Right of Table 1)",
+      "x_cm": -44.5,
+      "y_cm": 100.0,
+      "description": "Left of gap, right end of Table 1"
+    },
+    {
+      "id": 3,
+      "name": "Desk 3 (Left of Table 2)",
+      "x_cm": 44.5,
+      "y_cm": 100.0,
+      "description": "Right of gap, left end of Table 2"
+    },
+    {
+      "id": 4,
+      "name": "Desk 4 (Right of Table 2)",
+      "x_cm": 227.5,
+      "y_cm": 100.0,
+      "description": "Rightmost desk, right end of Table 2"
+    }
+  ],
+
+  "scan_angles": {
+    "_note": "Angles for desk-centric polling. Robot turns to these angles to face each desk.",
+    "_calculation": "Based on desk_distance_forward_cm=100. Will update when distance measured.",
+    "1": -66.3,
+    "2": -24.0,
+    "3": 24.0,
+    "4": 66.3
+  },
+
+  "measurements": {
+    "_raw_measurements": "For reference",
+    "table_width_inches": 72,
+    "table_width_cm": 182.88,
+    "gap_inches": 35,
+    "gap_cm": 88.9,
+    "total_span_cm": 455.0
+  },
+
+  "navigation": {
+    "default_speed_dps": 200,
+    "turn_speed_dps": 150,
+    "approach_speed_dps": 100,
+    "stop_distance_cm": 10.0,
+    "_note": "Speed and distance settings for navigation"
+  }
+}
