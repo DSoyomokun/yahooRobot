@@ -7,7 +7,8 @@ from pathlib import Path
 # Add project root to Python path so we can import yahoo module
 # This allows running the script from any directory
 _script_dir = Path(__file__).parent.resolve()
-_project_root = _script_dir.parent.parent.parent.parent
+# Go up 3 levels: scanner -> mission -> yahoo -> project_root
+_project_root = _script_dir.parent.parent.parent
 if str(_project_root) not in sys.path:
     sys.path.insert(0, str(_project_root))
 
