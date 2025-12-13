@@ -2,63 +2,114 @@
 
 ## Overview
 
-**Desk-Centric Polling** is the strategy used by the Yahoo Robot to reliably identify which desk has a student requesting paper collection during Phase 2 (Collection).
+**Desk-Centric Polling** is the core scanning strategy used by the Yahoo Robot in **both delivery and collection phases**. The robot systematically turns to face each desk individually and runs detection algorithms to identify:
+- **Phase 1 (Delivery):** Which desks are occupied (person detection)
+- **Phase 2 (Collection):** Which desks have raised hands (gesture detection)
 
-Instead of trying to detect raised hands across the entire classroom simultaneously and determining spatial positions, the robot performs a systematic scan by turning to face each desk individually.
+This unified approach eliminates spatial ambiguity, saves navigation time, and provides consistent behavior across both mission types.
 
 ## The Challenge
 
-When a student raises their hand to request paper collection, the robot needs to answer two questions:
+The robot needs to answer key questions during both phases:
+
+**Delivery Phase:**
+1. **Is there a person at this desk?** (Detection)
+2. **Which desks should I visit?** (Efficiency)
+
+**Collection Phase:**
 1. **Is there a raised hand?** (Detection)
 2. **Which desk is it?** (Identification)
 
-Traditional approaches might use wide-angle camera views and complex spatial reasoning to map hand positions to desks. This introduces:
-- Ambiguity in hand-to-desk mapping
+Traditional approaches might use:
+- Wide-angle camera to see all desks simultaneously
+- Complex spatial reasoning to map detections to desk positions
+- Multiple cameras or sensors
+
+This introduces:
+- Ambiguity in mapping detections to desks
 - Complex computer vision (spatial localization)
 - Distortion from wide-angle lenses
-- Difficulty handling multiple simultaneous requests
+- Wasted time navigating to empty desks
 
 ## Our Solution: Sequential Desk Polling
 
-The robot performs a **systematic scan** from a designated waiting position:
+The robot performs a **systematic scan** from origin before each mission phase:
 
-### High-Level Algorithm
+### High-Level Algorithm (Generic)
 
 ```
-1. Robot returns to origin/waiting position
-2. FOR each desk in the row:
+1. Robot at origin/polling position
+2. Reset to known heading (0°)
+3. FOR each desk in the row:
    a. Turn body/camera to face that specific desk
-   b. Capture camera frame
-   c. Run hand-raise detection on frame
-   d. IF hand detected:
-      - Add desk to collection queue
-      - Log the request
-   e. Turn to next desk position
-3. Navigate to desks in collection queue
-4. Collect papers
+   b. Wait for camera stabilization (0.5s)
+   c. Capture camera frame
+   d. Run detector (person OR gesture, depending on phase)
+   e. IF detection positive:
+      - Add desk to queue
+      - Log detection
+      - LED feedback (green blink)
+   f. Turn to next desk position
+4. Return to original heading
+5. Return queue (list of desk IDs)
+6. Navigate only to desks in queue
+7. Perform mission action (deliver OR collect)
+```
+
+### Phase-Specific Usage
+
+**Delivery Mission:**
+```python
+# Scan for occupied desks
+occupied_desks = poller.scan_for_persons()
+# Returns: [1, 2, 4] (Desk 3 is empty)
+
+# Navigate only to occupied desks
+for desk_id in occupied_desks:
+    deliver_to(desk_id)
+```
+
+**Collection Mission:**
+```python
+# Scan for raised hands
+collection_queue = poller.scan_for_raised_hands()
+# Returns: [2, 4] (Only Desks 2 and 4 raised hands)
+
+# Navigate only to requesting desks
+for desk_id in collection_queue:
+    collect_from(desk_id)
 ```
 
 ### Why This Works
 
 **Eliminates Ambiguity:**
-- When camera points at Desk #3 and detects a hand → Request is from Desk #3
+- When camera points at Desk #3 and detects → It's from Desk #3
 - No spatial reasoning required
 - No guessing or probability calculations
+- Works for both person detection and gesture detection
 
 **Simpler Computer Vision:**
-- Task becomes: "Is there a raised hand in center of frame?"
-- Not: "Where is the hand in 3D space relative to the room?"
-- Can use existing gesture detection code
+- Task becomes: "Is there [a person / raised hand] in center of frame?"
+- Not: "Where is [the person / hand] in 3D space relative to the room?"
+- Can use existing detection code
+- High accuracy (detector only needs binary yes/no)
+
+**Maximum Efficiency:**
+- **Saves navigation time** - Robot only visits desks that need attention
+- Example: 1 absent student = skip 1 desk = ~30 seconds saved
+- Consistent behavior across both mission phases
 
 **Reliable and Deterministic:**
-- One student raises hand at a time (simple protocol)
 - Clear turn-by-turn behavior
 - Easy to debug and verify
+- Predictable outcomes
+- Students understand the robot's scanning pattern
 
 **Builds on Existing Capabilities:**
 - Uses robot's existing `turn_degrees()` function
-- Reuses gesture detection module
+- Reuses person detector and gesture detector
 - Leverages IMU for precise heading control
+- Minimal new code required
 
 ## Implementation Details
 
@@ -218,12 +269,16 @@ This documentation will be updated as implementation progresses. Potential impro
 
 ## Implementation Status
 
-- [ ] Story 2.2: Implement desk-centric polling scan routine
+- [x] Story 1.1: Configuration includes scan angles for each desk
+- [ ] Story 2.1: Person detector implementation
+- [ ] Story 2.2: Implement generic desk-centric polling module
 - [ ] Story 2.2: Determine optimal scan angles experimentally
-- [ ] Story 2.2: Integrate with gesture detection module
-- [ ] Story 3.2: Integrate polling into collection mission workflow
+- [ ] Story 2.2: Test with both person detection and gesture detection
+- [ ] Story 3.1: Integrate polling into delivery mission (scan for persons)
+- [ ] Story 3.2: Integrate polling into collection mission (scan for raised hands)
 
 ---
 
 **Last Updated:** 2025-12-13
 **Status:** Design Document (Implementation Pending)
+**Optimization:** Now used for BOTH delivery and collection phases
