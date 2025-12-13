@@ -5,8 +5,8 @@ import cv2
 import time
 from pathlib import Path
 
-from yahoo.cameras.camera_config import CameraConfig
-from yahoo.cameras.camera_utils import open_camera
+from yahoo.config.cameras import CSI_CAMERA
+from yahoo.sense.camera import open_camera
 from yahoo.mission.scanner.detector import PaperDetector
 from yahoo.mission.scanner.storage import init_db, insert_scan
 from yahoo.mission.scanner.leds import (
@@ -19,8 +19,7 @@ SCAN_DIR.mkdir(parents=True, exist_ok=True)
 
 def main():
     init_db()
-    cfg = CameraConfig(name="scanner_cam")
-    cap = open_camera(cfg)
+    cap = open_camera(CSI_CAMERA)
     if cap is None:
         return
 
@@ -31,9 +30,9 @@ def main():
     print("[SYSTEM] Scanner ready")
 
     while True:
-        # PiCamera2 only
-        frame = cap.capture_array()
-        if frame is None:
+        # OpenCV VideoCapture
+        ret, frame = cap.read()
+        if not ret:
             break
 
         if state == "IDLE":
@@ -60,8 +59,8 @@ def main():
         if cv2.waitKey(1) & 0xFF == ord("q"):
             break
 
-    # Release PiCamera2
-    cap.stop()
+    # Release OpenCV VideoCapture
+    cap.release()
     cv2.destroyAllWindows()
 
 if __name__ == "__main__":
