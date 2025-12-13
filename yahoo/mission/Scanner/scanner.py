@@ -33,13 +33,8 @@ def main():
         print("[ERROR] Failed to open camera")
         return
     
-    # Warm up camera - let it stabilize
-    print("[SYSTEM] Warming up camera...")
-    for _ in range(10):
-        ret, frame = cap.read()
-        if ret and frame is not None:
-            break
-        time.sleep(0.1)
+    # Small delay after opening camera (let it initialize)
+    time.sleep(0.5)
     
     # Initialize paper detector
     detector = PaperDetector()
