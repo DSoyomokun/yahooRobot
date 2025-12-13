@@ -86,13 +86,30 @@ class Scanner:
         # Timing
         self._cooldown_start_time = None
     
+    @staticmethod
+    def _is_raspberry_pi() -> bool:
+        """Check if running on Raspberry Pi (not Mac/Windows)."""
+        try:
+            with open('/proc/cpuinfo', 'r') as f:
+                return 'Raspberry Pi' in f.read()
+        except:
+            return False
+    
     def start(self):
         """Start the scanner. Initializes camera and begins scanning loop."""
         if self._running:
             print("[SCANNER] Already running")
             return
         
+        # Verify we're on Raspberry Pi (not Mac)
+        if not self._is_raspberry_pi():
+            print("[SCANNER] ERROR: Scanner requires Raspberry Pi hardware")
+            print("[SCANNER] This scanner is designed for GoPiGo robot only")
+            print("[SCANNER] Cannot run on Mac/Windows")
+            return False
+        
         print("[SCANNER] Initializing...")
+        print("[SCANNER] Platform: Raspberry Pi (GoPiGo)")
         
         # Open camera
         self.cap = open_camera(self.camera_config)
