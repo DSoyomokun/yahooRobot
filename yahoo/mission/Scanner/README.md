@@ -22,7 +22,24 @@ The scanner detects paper insertions using brightness-based edge detection, capt
 
 ## Installation
 
-### 1. Enable Camera on Raspberry Pi
+### 1. Connect to GoPiGo
+
+**On your Mac:**
+```bash
+# Connect to GoPiGo WiFi (SSID: GoPiGo, Password: robots1234)
+# Then use development aliases (see docs/COMMANDS.md)
+robopi  # SSH into robot
+```
+
+**Or manually:**
+```bash
+ssh pi@10.10.10.10
+# Password: robots1234
+```
+
+> **💡 Tip:** See [docs/COMMANDS.md](../../docs/COMMANDS.md) for development aliases (`gitup`, `deploypi`, `robopi`, etc.)
+
+### 2. Enable Camera on Raspberry Pi
 
 ```bash
 sudo raspi-config
@@ -30,7 +47,7 @@ sudo raspi-config
 sudo reboot
 ```
 
-### 2. Verify Camera
+### 3. Verify Camera
 
 ```bash
 # Check camera device exists
@@ -40,13 +57,36 @@ ls -l /dev/video*
 libcamera-still -o test.jpg
 ```
 
-### 3. Install Dependencies
+### 4. Install Dependencies
 
 ```bash
 pip3 install opencv-python-headless
 ```
 
 ## Usage
+
+### Development Workflow
+
+**On your Mac:**
+```bash
+# 1. Pull latest code (on normal WiFi)
+gitup  # See docs/COMMANDS.md for aliases
+
+# 2. Connect to GoPiGo WiFi, then deploy
+deploypi
+
+# 3. SSH into robot
+robopi
+```
+
+**On GoPiGo:**
+```bash
+cd ~/yahooRobot
+git pull  # Or use gitup on Mac first
+cd yahoo/mission/scanner
+```
+
+> **📚 Reference:** See [docs/COMMANDS.md](../../docs/COMMANDS.md) for complete development workflow and aliases.
 
 ### Basic Usage (Direct Execution)
 
@@ -168,6 +208,25 @@ scanner = Scanner(completion_callback=my_callback)
 - **Thread:** Called from scanner thread (ensure thread-safe operations)
 
 ## Testing
+
+### Quick Test on GoPiGo
+
+**Using development aliases (from Mac):**
+```bash
+# 1. Pull and deploy (see docs/COMMANDS.md)
+gitup      # Pull latest (on normal WiFi)
+deploypi   # Deploy to robot (on GoPiGo WiFi)
+robopi     # SSH into robot
+```
+
+**On GoPiGo:**
+```bash
+cd ~/yahooRobot/yahoo/mission/scanner
+python3 test_scanner.py  # Run test suite
+python3 scanner.py       # Run scanner
+```
+
+> **📚 Reference:** See [docs/COMMANDS.md](../../docs/COMMANDS.md) for development aliases and workflow.
 
 ### Run Test Suite
 
@@ -334,6 +393,12 @@ scanner = Scanner(cooldown_seconds=3.0)
 ✅ Importable without auto-starting  
 ✅ Completion signal emitted  
 ✅ Runs indefinitely without crashes  
+
+## Related Documentation
+
+- **[docs/COMMANDS.md](../../docs/COMMANDS.md)** - Development aliases, workflow, and command reference
+- **[docs/ROBOT_DEV_WORKFLOW.md](../../docs/ROBOT_DEV_WORKFLOW.md)** - Complete robot development workflow
+- **[docs/QUICK_START.md](../../docs/QUICK_START.md)** - Project quick start guide
 
 ## License
 

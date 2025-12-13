@@ -2,14 +2,16 @@
 # This scanner is GoPiGo robot only - requires Raspberry Pi
 
 # Core dependencies
-opencv-python-headless>=4.5.0  # For camera and image processing
+opencv-python-headless>=4.5.0  # For camera and image processing (works with old picamera library)
 python-dotenv>=0.19.0          # For .env file support (optional)
 
 # GoPiGo dependencies (required on robot)
-picamera2>=0.3.0               # Preferred for CSI camera (auto-detected, falls back to OpenCV if not available)
 easygopigo3>=1.0.0              # For GoPiGo LEDs
 
-# Note: Scanner automatically uses picamera2 for CSI camera if available,
-# otherwise falls back to OpenCV VideoCapture
+# Optional: PiCamera2 (not required - scanner uses OpenCV VideoCapture)
+# picamera2>=0.3.0               # Optional: Can be installed if preferred, but not needed
+
+# Note: Scanner uses OpenCV VideoCapture directly (same approach as gesture detection).
+# Works with the old picamera library that's already installed on the Pi.
 
 
