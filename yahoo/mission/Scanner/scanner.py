@@ -33,6 +33,14 @@ def main():
         print("[ERROR] Failed to open camera")
         return
     
+    # Warm up camera - let it stabilize
+    print("[SYSTEM] Warming up camera...")
+    for _ in range(10):
+        ret, frame = cap.read()
+        if ret and frame is not None:
+            break
+        time.sleep(0.1)
+    
     # Initialize paper detector
     detector = PaperDetector()
     scan_count = 0
@@ -43,27 +51,38 @@ def main():
         while True:
             # Read frame from camera
             ret, frame = cap.read()
-            if not ret:
+            if not ret or frame is None:
                 print("[WARN] Failed to read frame")
                 time.sleep(0.1)
                 continue
             
+            # Validate frame dimensions
+            if frame.size == 0:
+                print("[WARN] Empty frame received")
+                time.sleep(0.1)
+                continue
+            
             # Check if new paper detected
-            if detector.paper_detected(frame):
-                scan_count += 1
-                filename = SCAN_DIR / f"scan_{scan_count:04d}.jpg"
-                
-                # Save image
-                cv2.imwrite(str(filename), frame)
-                
-                # Save to database
-                insert_scan(str(filename))
-                
-                print(f"[SCAN] Captured scan #{scan_count}: {filename.name}")
-                
-                # Reset detector to wait for next paper
-                detector.reset()
-                time.sleep(1)  # Brief pause after detection
+            try:
+                if detector.paper_detected(frame):
+                    scan_count += 1
+                    filename = SCAN_DIR / f"scan_{scan_count:04d}.jpg"
+                    
+                    # Save image
+                    cv2.imwrite(str(filename), frame)
+                    
+                    # Save to database
+                    insert_scan(str(filename))
+                    
+                    print(f"[SCAN] Captured scan #{scan_count}: {filename.name}")
+                    
+                    # Reset detector to wait for next paper
+                    detector.reset()
+                    time.sleep(1)  # Brief pause after detection
+            except Exception as e:
+                print(f"[ERROR] Detection error: {e}")
+                time.sleep(0.1)
+                continue
             
             # Small delay to prevent excessive CPU usage
             time.sleep(0.05)
