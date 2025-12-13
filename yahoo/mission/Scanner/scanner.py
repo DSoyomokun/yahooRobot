@@ -1,5 +1,5 @@
 """
-Simple Paper Scanner - Detects new paper and saves to database
+Simple Paper Scanner - Detects new paper and saves images to scans folder
 """
 import sys
 from pathlib import Path
@@ -16,16 +16,12 @@ import time
 from yahoo.config.cameras import CSI_CAMERA
 from yahoo.sense.camera import open_camera
 from yahoo.mission.scanner.detector import PaperDetector
-from yahoo.mission.scanner.storage import init_db, insert_scan
 
 SCAN_DIR = _script_dir / "scans"
 SCAN_DIR.mkdir(parents=True, exist_ok=True)
 
 def main():
     print("[SYSTEM] Initializing scanner...")
-    
-    # Setup database
-    init_db()
     
     # Open camera
     cap = open_camera(CSI_CAMERA)
@@ -63,14 +59,11 @@ def main():
                     scan_count += 1
                     filename = SCAN_DIR / f"scan_{scan_count:04d}.jpg"
                     
-                    # Save image
+                    # Save image to scans folder
                     cv2.imwrite(str(filename), frame)
                     
-                    # Save to database (use relative path from scanner directory)
-                    rel_path = filename.relative_to(_script_dir)
-                    insert_scan(str(rel_path))
-                    
                     print(f"[SCAN] Captured scan #{scan_count}: {filename.name}")
+                    print(f"       Saved to: {filename}")
                     
                     # Reset detector to wait for next paper
                     detector.reset()
