@@ -1,0 +1,17 @@
+{
+  "ultrasonic": {
+    "hr_sr04": {
+      "trig_pin": 23,
+      "echo_pin": 24,
+      "description": "HR-SR04 Ultrasonic Sensor - Trig=GPIO23, Echo=GPIO24"
+    }
+  },
+  "notes": {
+    "gpio_numbering": "BCM (Broadcom) numbering is used",
+    "physical_pins": {
+      "gpio23": "Physical pin 16",
+      "gpio24": "Physical pin 18"
+    }
+  }
+}
+
