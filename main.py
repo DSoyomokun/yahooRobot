@@ -300,14 +300,16 @@ def main():
                     
                     # Constants for movement and obstacle detection
                     FEET_TO_CM = 30.48  # 1 foot = 30.48 cm
-                    DISTANCE_HALF_FT_CM = 0.5 * FEET_TO_CM  # 15.24 cm
-                    OBSTACLE_THRESHOLD_CM = 1.0 * FEET_TO_CM  # 30.48 cm (1 foot)
+                    OBSTACLE_THRESHOLD_CM = 0.5 * FEET_TO_CM  # 15.24 cm (1/2 foot)
                     TURN_90_DEGREES = 90
-                    TURN_180_DEGREES = 180
                     CHECK_INTERVAL = 0.1  # Check distance every 100ms (reduced to prevent I/O errors)
-                    DRIVE_SPEED_DPS = 200  # Speed for forward movement
-                    # Approximate speed: 200 DPS ≈ 6.8 cm/s (based on GoPiGo3 wheel diameter)
-                    CM_PER_SECOND = 6.8
+                    DRIVE_SPEED_DPS = 300  # Speed for forward movement (increased for faster movement)
+                    # Approximate speed: 300 DPS ≈ 10.2 cm/s (based on GoPiGo3 wheel diameter)
+                    CM_PER_SECOND = 10.2
+                    
+                    # ODectection movement sequence constants
+                    DISTANCE_2FT_CM = 2.0 * FEET_TO_CM  # 60.96 cm
+                    NEXT_STOP_THRESHOLD_CM = 1.0 * FEET_TO_CM  # 30.48 cm (1 foot)
                     
                     def check_obstacle():
                         """Check if obstacle is within threshold using distance sensor"""
@@ -437,44 +439,166 @@ def main():
                         logger.info("  → Step 7: Turning right 90 degrees to resume heading...")
                         robot.drive.turn_degrees(TURN_90_DEGREES)
                         
-                        # Step 8: Verify and correct heading using IMU
-                        if initial_heading is not None:
-                            time.sleep(0.2)  # Reduced stabilization time (0.2s vs 0.5s for speed)
-                            final_heading = get_heading()
-                            if final_heading is not None:
-                                heading_error = abs(final_heading - initial_heading)
-                                # Normalize to -180 to 180 range
-                                if heading_error > 180:
-                                    heading_error = 360 - heading_error
-                                
-                                if heading_error > 10:  # If error > 10 degrees, correct it
-                                    logger.info(f"  → Step 8: Correcting heading error ({heading_error:.1f}°)...")
-                                    correction = initial_heading - final_heading
-                                    # Normalize correction
-                                    if correction > 180:
-                                        correction -= 360
-                                    elif correction < -180:
-                                        correction += 360
-                                    robot.drive.turn_degrees(correction)
-                                    logger.info(f"  ✅ Heading corrected to {initial_heading:.1f}°")
-                                else:
-                                    logger.info(f"  ✅ Heading verified: {final_heading:.1f}° (error: {heading_error:.1f}°)")
+                        # Step 8: Path correction disabled to prevent overcompensation
+                        # (IMU correction code removed per user request)
                         
                         logger.info("✅ Obstacle avoidance complete. Resumed on original path.")
                     
+                    def drive_with_obstacle_avoidance(distance_cm, forward=True):
+                        """
+                        Drive a specific distance with obstacle detection and avoidance.
+                        If obstacle detected, goes around it and continues remaining distance.
+                        
+                        Args:
+                            distance_cm: Distance to travel in cm
+                            forward: True for forward, False for backward
+                        """
+                        remaining_distance = distance_cm
+                        obstacle_count = 0
+                        
+                        while remaining_distance > 0:
+                            # Check if next stop is within threshold
+                            if remaining_distance <= NEXT_STOP_THRESHOLD_CM:
+                                logger.info(f"  Next stop ({remaining_distance:.1f}cm) is within {NEXT_STOP_THRESHOLD_CM:.1f}cm threshold")
+                                logger.info("  Will still go around obstacles but stop at intended location")
+                            
+                            # Start driving
+                            if forward:
+                                robot.drive.forward(DRIVE_SPEED_DPS)
+                            else:
+                                robot.drive.backward(DRIVE_SPEED_DPS)
+                            
+                            start_time = time.time()
+                            distance_traveled = 0
+                            
+                            # Drive until distance reached or obstacle detected
+                            while distance_traveled < remaining_distance:
+                                # Check for obstacles
+                                has_obstacle, dist = check_obstacle()
+                                
+                                if has_obstacle:
+                                    # Stop and avoid obstacle
+                                    robot.drive.stop()
+                                    obstacle_count += 1
+                                    
+                                    logger.warning("")
+                                    logger.warning(f"🚨 OBSTACLE #{obstacle_count} DETECTED!")
+                                    logger.warning(f"  Distance: {dist:.1f} cm ({dist/30.48:.2f} feet)")
+                                    logger.warning(f"  Remaining distance: {remaining_distance:.1f} cm")
+                                    
+                                    # Perform avoidance maneuver
+                                    avoid_obstacle()
+                                    
+                                    # Update remaining distance (subtract what we traveled before obstacle)
+                                    distance_traveled = (time.time() - start_time) * CM_PER_SECOND
+                                    remaining_distance -= distance_traveled
+                                    
+                                    logger.info(f"  Resuming movement - {remaining_distance:.1f} cm remaining")
+                                    break  # Exit inner loop to restart driving
+                                
+                                # Update distance traveled
+                                elapsed = time.time() - start_time
+                                distance_traveled = elapsed * CM_PER_SECOND
+                                
+                                time.sleep(CHECK_INTERVAL)
+                            
+                            # If we completed the distance without obstacle, stop
+                            if distance_traveled >= remaining_distance:
+                                robot.drive.stop()
+                                remaining_distance = 0
+                        
+                        if obstacle_count > 0:
+                            logger.info(f"  Completed distance with {obstacle_count} obstacle(s) avoided")
+                    
+                    def drive_forward_duration(duration_seconds):
+                        """
+                        Drive forward for a specific duration with obstacle detection and avoidance.
+                        If obstacle detected, goes around it and continues remaining time.
+                        
+                        Args:
+                            duration_seconds: Duration to drive forward in seconds
+                        """
+                        remaining_time = duration_seconds
+                        obstacle_count = 0
+                        start_total_time = time.time()
+                        
+                        while remaining_time > 0:
+                            # Start driving forward
+                            robot.drive.forward(DRIVE_SPEED_DPS)
+                            
+                            segment_start_time = time.time()
+                            
+                            # Drive until time reached or obstacle detected
+                            while (time.time() - segment_start_time) < remaining_time:
+                                # Check for obstacles
+                                has_obstacle, dist = check_obstacle()
+                                
+                                if has_obstacle:
+                                    # Stop and avoid obstacle
+                                    robot.drive.stop()
+                                    obstacle_count += 1
+                                    
+                                    elapsed_segment = time.time() - segment_start_time
+                                    logger.warning("")
+                                    logger.warning(f"🚨 OBSTACLE #{obstacle_count} DETECTED!")
+                                    logger.warning(f"  Distance: {dist:.1f} cm ({dist/30.48:.2f} feet)")
+                                    logger.warning(f"  Remaining time: {remaining_time:.1f} seconds")
+                                    
+                                    # Perform avoidance maneuver
+                                    avoid_obstacle()
+                                    
+                                    # Update remaining time (subtract what we traveled before obstacle)
+                                    remaining_time -= elapsed_segment
+                                    
+                                    logger.info(f"  Resuming movement - {remaining_time:.1f} seconds remaining")
+                                    break  # Exit inner loop to restart driving
+                                
+                                time.sleep(CHECK_INTERVAL)
+                            
+                            # If we completed the time without obstacle, stop
+                            if (time.time() - segment_start_time) >= remaining_time:
+                                robot.drive.stop()
+                                remaining_time = 0
+                        
+                        total_elapsed = time.time() - start_total_time
+                        if obstacle_count > 0:
+                            logger.info(f"  Completed {total_elapsed:.1f} seconds of forward movement with {obstacle_count} obstacle(s) avoided")
+                    
+                    def turn_90_degrees(direction='left'):
+                        """
+                        Turn 90 degrees left or right using IMU for accurate rotation.
+                        
+                        Args:
+                            direction: 'left' or 'right'
+                        """
+                        degrees = -TURN_90_DEGREES if direction == 'left' else TURN_90_DEGREES
+                        direction_name = "left" if direction == 'left' else "right"
+                        
+                        logger.info(f"Turning {direction_name} 90 degrees...")
+                        
+                        # Perform turn (path correction disabled to prevent overcompensation)
+                        robot.drive.turn_degrees(degrees)
+                        logger.info(f"  ✅ Turn complete!")
+                    
                     # ============================================================
-                    # CONTINUOUS FORWARD MOVEMENT WITH OBSTACLE AVOIDANCE
+                    # ODectection: MOVEMENT SEQUENCE WITH OBSTACLE AVOIDANCE
                     # ============================================================
                     logger.info("=" * 60)
-                    logger.info("CONTINUOUS FORWARD MOVEMENT WITH OBSTACLE DETECTION")
+                    logger.info("ODectection: MOVEMENT SEQUENCE WITH OBSTACLE DETECTION")
                     logger.info("=" * 60)
-                    logger.info("Robot will move forward continuously")
-                    logger.info("Obstacle detection:")
-                    logger.info(f"  - Distance sensor: {OBSTACLE_THRESHOLD_CM:.1f}cm (1 foot)")
-                    logger.info("  - IMU: For orientation tracking and path recovery")
-                    logger.info("  - Robot will go around obstacles and continue straight path")
+                    logger.info("Movement sequence (repeat 4 times):")
+                    logger.info("  1. Move forward 2 feet, stop")
+                    logger.info("  2. Turn left 90 degrees, wait 5 seconds")
+                    logger.info("  3. Turn right 90 degrees")
+                    logger.info("  4. Move forward 2 feet, stop")
+                    logger.info("  5. Turn left 90 degrees, wait 5 seconds")
                     logger.info("")
-                    logger.info("Press Ctrl+C to stop")
+                    logger.info("Obstacle detection:")
+                    logger.info(f"  - Distance sensor: {OBSTACLE_THRESHOLD_CM:.1f}cm (1/2 foot)")
+                    logger.info("  - IMU: For orientation tracking and path recovery")
+                    logger.info("  - Robot will go around obstacles and continue same distance/time")
+                    logger.info(f"  - If next stop is within {NEXT_STOP_THRESHOLD_CM:.1f}cm, will still go around and stop")
+                    logger.info(f"  - Forward speed: {DRIVE_SPEED_DPS} DPS (~{CM_PER_SECOND:.1f} cm/s)")
                     logger.info("=" * 60)
                     logger.info("")
                     
@@ -486,63 +610,64 @@ def main():
                     if imu is None:
                         logger.warning("⚠️  IMU not available - path recovery may be less accurate")
                     
-                    # Start continuous forward movement
-                    logger.info("Starting continuous forward movement...")
-                    robot.drive.forward(DRIVE_SPEED_DPS)
-                    
-                    start_time = time.time()
-                    last_log_time = 0
-                    obstacle_count = 0
-                    
-                    try:
-                        while True:
-                            # Check for obstacles continuously
-                            has_obstacle, dist = check_obstacle()
-                            
-                            if has_obstacle:
-                                # Stop immediately when obstacle detected
-                                robot.drive.stop()
-                                obstacle_count += 1
-                                elapsed = time.time() - start_time
-                                
-                                logger.warning("")
-                                logger.warning(f"🚨 OBSTACLE #{obstacle_count} DETECTED!")
-                                logger.warning(f"  Distance: {dist:.1f} cm ({dist/30.48:.2f} feet)")
-                                logger.warning(f"  Traveled for: {elapsed:.1f} seconds")
-                                
-                                # Perform robust avoidance maneuver with path recovery
-                                avoid_obstacle()
-                                
-                                # Resume forward movement
-                                logger.info("Resuming forward movement...")
-                                robot.drive.forward(DRIVE_SPEED_DPS)
-                                start_time = time.time()  # Reset timer
-                            
-                            # Log distance periodically (every second)
-                            elapsed = time.time() - start_time
-                            if int(elapsed) > last_log_time:
-                                if dist is not None:
-                                    logger.info(f"  Distance: {dist:5.1f} cm ({dist/30.48:4.2f} ft) | Elapsed: {elapsed:5.1f}s | Obstacles avoided: {obstacle_count}")
-                                last_log_time = int(elapsed)
-                            
-                            time.sleep(CHECK_INTERVAL)
-                            
-                    except KeyboardInterrupt:
-                        robot.drive.stop()
-                        elapsed = time.time() - start_time
+                    # Movement sequence: Repeat 4 times
+                    # Pattern per iteration:
+                    # 1. Move forward 2 feet, stop
+                    # 2. Turn left 90 degrees, wait 5 seconds
+                    # 3. Turn right 90 degrees
+                    # 4. Move forward 2 feet, stop
+                    # 5. Turn left 90 degrees, wait 5 seconds
+                    for sequence_num in range(4):
                         logger.info("")
                         logger.info("=" * 60)
-                        logger.info("⚠️  Movement stopped by user")
-                        logger.info(f"  Total time: {elapsed:.1f} seconds")
-                        logger.info(f"  Obstacles avoided: {obstacle_count}")
+                        logger.info(f"SEQUENCE #{sequence_num + 1}/4")
                         logger.info("=" * 60)
+                        
+                        # Step 1: Move forward 2 feet, stop
+                        logger.info("")
+                        logger.info("Step 1: Moving forward 2 feet...")
+                        drive_with_obstacle_avoidance(DISTANCE_2FT_CM, forward=True)
+                        robot.drive.stop()  # Explicit stop
+                        logger.info("✅ Step 1 complete!")
+                        
+                        # Step 2: Turn left 90 degrees, wait 5 seconds
+                        logger.info("")
+                        logger.info("Step 2: Turning left 90 degrees...")
+                        turn_90_degrees('left')
+                        logger.info("  Waiting 5 seconds in turned position...")
+                        time.sleep(5.0)
+                        logger.info("✅ Step 2 complete!")
+                        
+                        # Step 3: Turn right 90 degrees
+                        logger.info("")
+                        logger.info("Step 3: Turning right 90 degrees...")
+                        turn_90_degrees('right')
+                        logger.info("✅ Step 3 complete!")
+                        
+                        # Step 4: Move forward 2 feet, stop
+                        logger.info("")
+                        logger.info("Step 4: Moving forward 2 feet...")
+                        drive_with_obstacle_avoidance(DISTANCE_2FT_CM, forward=True)
+                        robot.drive.stop()  # Explicit stop
+                        logger.info("✅ Step 4 complete!")
+                        
+                        # Step 5: Turn left 90 degrees, wait 5 seconds
+                        logger.info("")
+                        logger.info("Step 5: Turning left 90 degrees...")
+                        turn_90_degrees('left')
+                        logger.info("  Waiting 5 seconds in turned position...")
+                        time.sleep(5.0)
+                        logger.info("✅ Step 5 complete!")
+                        
+                        logger.info("")
+                        logger.info(f"✅ Sequence #{sequence_num + 1}/4 complete!")
                     
                     # Ensure robot is stopped
                     robot.drive.stop()
-                    
+
                     logger.info("")
                     logger.info("=" * 60)
-                    logger.info("✅ Movement complete!")
+                    logger.info("✅ ODectection movement sequence complete!")
                     logger.info("=" * 60)
 
                 except Exception as e:
