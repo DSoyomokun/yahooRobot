@@ -136,6 +136,89 @@ python3 main.py test gesture
 python3 main.py test pi_camera
 ```
 
+### Story & Feature Tests
+
+These are standalone scripts for testing major features and user stories.
+
+**Workflow:**
+1.  `(On Dev Machine)` Pull latest code: `gitup`
+2.  `(On Dev Machine)` Deploy to robot: `deploypi`
+3.  `(On Dev Machine)` SSH into robot: `robopi`
+4.  `(On Robot)` Navigate to project directory: `cd ~/yahooRobot`
+5.  `(On Robot)` Run the desired test script.
+
+#### Story 1.2: Test Linear Movement
+
+This test validates the robot's ability to drive in a straight line.
+
+```bash
+# Run on the robot (requires hardware)
+python3 tests/test_linear_movement.py
+
+# Run in simulation on any machine
+python3 tests/test_linear_movement.py --simulate
+```
+> **Note:** When running on hardware, the test will pause and ask for confirmation before starting. It will also require you to manually measure the distance traveled at the end.
+
+#### Story 1.3: Test Precise Turns
+
+This test validates the robot's ability to perform accurate in-place turns using IMU feedback.
+
+```bash
+# Run on the robot (requires hardware and IMU)
+python3 tests/test_turns.py
+
+# Run in simulation on any machine
+python3 tests/test_turns.py --simulate
+```
+
+**What it tests:**
+- 90° right turn (within ±3° tolerance)
+- 90° left turn (within ±3° tolerance)
+- 180° turn (within ±3° tolerance)
+
+> **Note:** When running on hardware, the test will pause before each turn and ask for confirmation. Make sure the robot has clear space to rotate in place without hitting obstacles.
+
+#### Story 1.4: Execute Full Row Traversal
+
+This script tests the robot's ability to navigate to all configured desks and return to origin.
+
+```bash
+# Run on the robot (requires hardware)
+python3 scripts/run_row_traversal.py
+
+# Run in simulation on any machine
+python3 scripts/run_row_traversal.py --simulate
+```
+
+#### Stories 2.1 + 2.2: Desk-Centric Polling System
+
+This test validates the person detection and desk polling systems working together.
+
+```bash
+# Run on the robot (requires hardware, camera, and IMU)
+python3 tests/test_desk_polling.py
+
+# Run in simulation on any machine
+python3 tests/test_desk_polling.py --simulate
+```
+
+**What it tests:**
+- Person detector (back-view optimized for detecting students from behind)
+- Desk poller initialization and configuration
+- Full polling scan (robot turns to face each desk sequentially)
+- Detection queue creation (occupied desks found during scan)
+- Summary statistics generation
+
+**On hardware, this will:**
+- Turn the robot to face each desk at configured scan angles
+- Capture camera frame at each desk
+- Run person detection using MediaPipe Pose (shoulder visibility)
+- Build a list of occupied desk IDs
+- Provide LED feedback (green blink when person detected)
+
+> **Note:** When running on hardware, ensure the robot has clear space to rotate in place and that the camera has a clear view of each desk. The robot will turn approximately ±66° during the scan.
+
 ---
 
 ## 🚀 Quick Examples
