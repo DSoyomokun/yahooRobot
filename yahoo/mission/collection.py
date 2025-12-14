@@ -1,9 +1,12 @@
 """
 Collection Mission for row navigation with scanner integration.
 Traverses stops 4→3→2→1→0 reverse, scanning papers at desk stops (0-3).
+Includes obstacle detection and avoidance.
 """
 import logging
 from typing import Optional
+
+from yahoo.mission.obstacle_nav import ObstacleNavigator
 
 logger = logging.getLogger(__name__)
 
@@ -29,6 +32,7 @@ class CollectionMission:
         self.planner = row_planner
         self.scanner_timeout = scanner_timeout
         self.current_stop = 4  # Start at buffer stop (after 180° turn)
+        self.obstacle_nav = ObstacleNavigator(robot)  # Obstacle-aware navigation
         
         logger.info(f"[COLLECTION] Mission initialized (scanner timeout: {scanner_timeout}s)")
     
@@ -113,9 +117,11 @@ class CollectionMission:
             direction = "backward" if distance_cm < 0 else "forward"
             logger.info(f"[COLLECTION] Moving {abs(distance_cm):.1f}cm {direction} from Stop {self.current_stop} to Stop {stop_index}")
             
-            # Use drive_cm to move exact distance
+            # Use obstacle-aware navigation
             if hasattr(self.robot, 'drive') and self.robot.drive:
-                self.robot.drive.drive_cm(distance_cm)
+                success = self.obstacle_nav.drive_cm_safe(distance_cm, check_obstacles=True)
+                if not success:
+                    logger.warning("[COLLECTION] Movement interrupted or failed")
             else:
                 logger.warning("[COLLECTION] Robot drive not available, simulating movement")
         

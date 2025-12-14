@@ -1,9 +1,12 @@
 """
 Pass-Out Mission for row navigation.
 Traverses stops 0→1→2→3→4 forward, distributing papers at desk stops (0-3).
+Includes obstacle detection and avoidance.
 """
 import logging
 from typing import Optional
+
+from yahoo.mission.obstacle_nav import ObstacleNavigator
 
 logger = logging.getLogger(__name__)
 
@@ -26,6 +29,7 @@ class PassOutMission:
         self.robot = robot
         self.planner = row_planner
         self.current_stop = 0  # Track current position
+        self.obstacle_nav = ObstacleNavigator(robot)  # Obstacle-aware navigation
         
         logger.info("[PASS-OUT] Mission initialized")
     
@@ -99,9 +103,11 @@ class PassOutMission:
         if distance_cm > 0:
             logger.info(f"[PASS-OUT] Moving {distance_cm:.1f}cm from Stop {self.current_stop} to Stop {stop_index}")
             
-            # Use drive_cm to move exact distance
+            # Use obstacle-aware navigation
             if hasattr(self.robot, 'drive') and self.robot.drive:
-                self.robot.drive.drive_cm(distance_cm)
+                success = self.obstacle_nav.drive_cm_safe(distance_cm, check_obstacles=True)
+                if not success:
+                    logger.warning("[PASS-OUT] Movement interrupted or failed")
             else:
                 logger.warning("[PASS-OUT] Robot drive not available, simulating movement")
         
