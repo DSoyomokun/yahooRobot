@@ -1,10 +1,10 @@
 # yahooRobot
 
-**Campus Package Service Robot** - An autonomous delivery robot built on GoPiGo3
+**Classroom Paper Assistant Robot** - An autonomous classroom robot built on GoPiGo3
 
 ## Overview
 
-Yahoo Robot is a GoPiGo3-based autonomous robot designed for campus package delivery. It features navigation, obstacle avoidance, package handling, and a web-based control interface.
+Yahoo Robot is a GoPiGo3-based autonomous robot designed for classroom paper distribution and collection. It features navigation, obstacle avoidance, computer vision-based person detection, and paper handling capabilities.
 
 ## Quick Start
 

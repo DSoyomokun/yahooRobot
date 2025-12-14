@@ -109,23 +109,18 @@ The initial concept was an ambitious, fully autonomous system designed to operat
 
 ## Project Evolution
 
-### Reality Check: From Campus to Classroom to 4 Desks
+### Reality Check: From Full Classroom to 4 Desks
 
-The project underwent several scope reductions as we encountered real-world constraints:
+The project underwent scope reductions as we encountered real-world constraints:
 
-#### Phase 1: Campus Package Service → Classroom Assistant
-**Original:** Campus-wide package delivery robot
-**Revised:** Classroom-focused paper distribution system
-**Reason:** More focused use case, testable environment, clear value proposition
-
-#### Phase 2: Full Classroom → 4-Desk Row
+#### Phase 1: Full Classroom → 4-Desk Row
 **Original:** Entire classroom (20-30 desks in 2D grid)
 **Revised:** Single row of 4 desks
 **Reason:** Testing constraints, time limitations, spatial complexity
 
 **Key Decision Point:** *We realized that validating core robotics concepts (navigation, perception, interaction) didn't require a full classroom. A 4-desk row could demonstrate all essential capabilities while remaining testable within our timeline.*
 
-#### Phase 3: Full Autonomy → Manual-Assisted
+#### Phase 2: Full Autonomy → Manual-Assisted
 **Original:** Fully autonomous detection and navigation
 **Revised:** Manual input for desk IDs, keyboard confirmations
 **Reason:** Reliability over sophistication, demo-ready system
