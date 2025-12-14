@@ -219,6 +219,45 @@ python3 tests/test_desk_polling.py --simulate
 
 > **Note:** When running on hardware, ensure the robot has clear space to rotate in place and that the camera has a clear view of each desk. The robot will turn approximately ±66° during the scan.
 
+#### Story 3.1: Delivery Mission
+
+This executes the full paper delivery workflow.
+
+```bash
+# Manual mode (default) - enter occupied desks at prompt
+python3 scripts/run_delivery_mission.py --manual
+
+# Debug: Only visit first 2 occupied desks
+python3 scripts/run_delivery_mission.py --manual --limit-desks 2
+
+# Future: Automated mode with person detection
+python3 scripts/run_delivery_mission.py --auto
+```
+
+**What it does:**
+1. Prompts for occupied desk IDs (e.g., "1,2,4")
+2. Navigates only to occupied desks (skips empty desks)
+3. At each desk:
+   - Turns left 90° to face the desk
+   - Delivers paper
+   - Waits for ENTER (student confirms receipt)
+   - Turns back to continue
+4. Shows delivery statistics at end
+
+**Why manual mode?**
+- Fast implementation for deadline
+- Person detection code exists but not integrated yet
+- Easy to switch to `--auto` mode later
+- See code comments for future integration steps
+
+**Setup:**
+- Position robot in front of Desk 1, facing along the row
+
+**Future automated mode:**
+- Uses `DeskPoller.scan_for_persons()` to identify occupied desks
+- No manual input needed
+- Already implemented in `yahoo/sense/person_detector.py`
+
 #### Story 3.2: Collection Mission
 
 This executes the full paper collection workflow.
@@ -253,7 +292,45 @@ python3 scripts/run_collection_mission.py --timer 10
 
 **Files saved to:** `collected_papers/desk_N_YYYYMMDD_HHMMSS.txt`
 
-> **Note:** Robot uses hardcoded distances between desks (52cm, 238cm, 52cm). Does 180° turn after Desk 2 to reverse direction.
+> **Note:** Robot uses hardcoded distances between desks (104cm, 238cm, 104cm). Does 180° turn after Desk 2 to reverse direction.
+
+#### Hand Raise Helper (On-Demand Assistance)
+
+Watches for hand raise gestures and navigates to specific desk for student help.
+
+```bash
+# One-time assistance - help one student and exit
+python3 scripts/hand_raise_helper.py
+
+# Continuous mode - keep helping multiple students
+python3 scripts/hand_raise_helper.py --continuous
+
+# Future: Automated desk identification
+python3 scripts/hand_raise_helper.py --auto
+```
+
+**What it does:**
+1. Watches webcam for hand raise gesture (using MediaPipe Pose)
+2. When detected, prompts: "Which desk raised hand? (1-4):"
+3. Navigates to that specific desk
+4. Provides assistance
+5. (Optional) Returns to start and repeats
+
+**Use case:**
+- Student needs help during work time
+- Raises hand in front of webcam
+- Robot goes to help that specific student
+- Not part of main delivery/collection workflow
+
+**Why manual desk confirmation?**
+- Webcam detects gesture but not desk location
+- Fast implementation for deadline
+- Gesture detection code already exists
+- Future: Use `DeskPoller.scan_for_raised_hands()` for automated desk ID
+
+**Setup:**
+- Position robot in front of Desk 1, facing along the row
+- Webcam should have view of students
 
 ---
 

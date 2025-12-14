@@ -4,6 +4,7 @@ Provides low-level motor control with simulation support.
 """
 
 import logging
+import time
 from typing import Optional
 
 logger = logging.getLogger(__name__)
@@ -141,10 +142,17 @@ class Drive:
 
         if self.gpg:
             try:
-                if distance_cm > 0:
-                    self.gpg.drive_cm(distance_cm, blocking=True)
-                else:
-                    self.gpg.drive_cm(distance_cm, blocking=True)
+                # Use blocking=False to avoid hanging, then wait with timeout
+                self.gpg.drive_cm(distance_cm, blocking=False)
+
+                # Calculate timeout based on distance and speed
+                # Wheel diameter ~6.6cm, so circumference ~20.7cm
+                # At 200 DPS (default), wheel rotates ~0.55 rev/sec = ~11.4 cm/sec
+                # Add 2 second buffer for safety
+                estimated_speed_cm_per_sec = 11.4  # Conservative estimate
+                timeout = abs(distance_cm) / estimated_speed_cm_per_sec + 2.0
+                time.sleep(timeout)
+
                 logger.debug(f"Drove {distance_cm:.1f}cm")
             except Exception as e:
                 logger.error(f"Failed to drive distance: {e}")
@@ -164,7 +172,14 @@ class Drive:
 
         if self.gpg:
             try:
-                self.gpg.turn_degrees(degrees, blocking=True)
+                # Use blocking=False to avoid hanging, then wait with timeout
+                self.gpg.turn_degrees(degrees, blocking=False)
+
+                # Calculate timeout based on angle (assume ~90 deg/sec turn rate)
+                # Add 2 second buffer for safety
+                timeout = abs(degrees) / 90.0 + 2.0
+                time.sleep(timeout)
+
                 logger.debug(f"Turned {degrees:.1f}°")
             except Exception as e:
                 logger.error(f"Failed to turn: {e}")
