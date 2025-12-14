@@ -187,52 +187,50 @@ class LinearMovementTest:
 
         input("\n⚠️  Make sure robot has clear space! Press ENTER to start...")
 
-        # Calculate expected duration
-        # This is approximate - actual time depends on robot mechanics
-        wheel_diameter_cm = 6.6  # GoPiGo3 wheel diameter
-        wheel_circumference_cm = 3.14159 * wheel_diameter_cm
-        degrees_per_cm = 360.0 / wheel_circumference_cm
-        total_degrees = TEST_DISTANCE_CM * degrees_per_cm
-        expected_duration = total_degrees / DRIVE_SPEED_DPS
+        # Use drive_cm() for accurate distance-based movement
+        # This uses GoPiGo3 encoders for precise distance control
+        print(f"Using drive_cm() for precise {TEST_DISTANCE_CM}cm movement...\n")
 
-        print(f"Expected duration: ~{expected_duration:.1f} seconds\n")
-
-        # Start driving
+        # Start driving with distance-based control
         start_time = time.time()
-        self.robot.drive.forward(DRIVE_SPEED_DPS)
-
-        # Monitor heading during movement
+        
+        # Monitor heading during movement in a separate thread or polling
+        # Since drive_cm() is blocking, we need to monitor heading before/during/after
         sample_interval = 1.0 / SAMPLE_RATE_HZ
         last_sample_time = start_time
-
-        while (time.time() - start_time) < expected_duration:
-            current_time = time.time()
-
-            # Sample heading at specified rate
-            if current_time - last_sample_time >= sample_interval:
-                heading = self.get_heading()
-                elapsed = current_time - start_time
-
-                if heading is not None:
-                    # Calculate deviation from initial heading
-                    deviation = self.normalize_angle_difference(self.initial_heading, heading)
-
-                    self.heading_log.append({
-                        'time': elapsed,
-                        'heading': heading,
-                        'deviation': deviation
-                    })
-
-                    print(f"  t={elapsed:5.2f}s  heading={heading:6.2f}°  deviation={deviation:+6.2f}°")
-
-                last_sample_time = current_time
-
-            time.sleep(0.01)  # Small sleep to prevent busy-waiting
-
-        # Stop the robot
-        self.robot.drive.stop()
+        
+        # Start monitoring thread or use non-blocking approach
+        # For now, we'll sample heading before and after, and log during if possible
+        print("Starting movement...")
+        
+        # Use drive_cm() which is blocking and uses encoders
+        # Note: drive_cm() uses GoPiGo3 encoders for precise distance
+        print(f"Calling drive_cm({TEST_DISTANCE_CM})...")
+        try:
+            self.robot.drive.drive_cm(TEST_DISTANCE_CM)
+            print("✅ drive_cm() call completed")
+        except Exception as e:
+            print(f"❌ Error during drive_cm(): {e}")
+            import traceback
+            traceback.print_exc()
+            self.robot.drive.stop()
+            return False
+        
         end_time = time.time()
         actual_duration = end_time - start_time
+        
+        # Sample heading a few times after movement for verification
+        time.sleep(0.1)
+        for i in range(5):
+            heading = self.get_heading()
+            if heading is not None:
+                deviation = self.normalize_angle_difference(self.initial_heading, heading)
+                self.heading_log.append({
+                    'time': actual_duration + (i * 0.1),
+                    'heading': heading,
+                    'deviation': deviation
+                })
+            time.sleep(0.1)
 
         print(f"\n✅ Movement complete")
         print(f"   Actual duration: {actual_duration:.2f}s")

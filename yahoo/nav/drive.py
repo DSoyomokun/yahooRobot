@@ -141,13 +141,17 @@ class Drive:
 
         if self.gpg:
             try:
+                logger.info(f"[DRIVE] Calling gpg.drive_cm({distance_cm:.1f}, blocking=True)...")
                 if distance_cm > 0:
                     self.gpg.drive_cm(distance_cm, blocking=True)
                 else:
                     self.gpg.drive_cm(distance_cm, blocking=True)
-                logger.debug(f"Drove {distance_cm:.1f}cm")
+                logger.info(f"[DRIVE] ✅ drive_cm() completed - moved {abs(distance_cm):.1f}cm")
             except Exception as e:
-                logger.error(f"Failed to drive distance: {e}")
+                logger.error(f"[DRIVE] ❌ Failed to drive distance: {e}")
+                import traceback
+                traceback.print_exc()
+                raise  # Re-raise so caller knows it failed
 
     def turn_degrees(self, degrees: float, speed: Optional[float] = None):
         """
