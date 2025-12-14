@@ -28,18 +28,18 @@ class Drive:
         Initialize drive controller.
 
         Args:
-            robot: Robot instance with GoPiGo3 hardware (optional)
-            simulate: If True, run in simulation mode (no hardware)
+            robot: Robot instance with GoPiGo3 hardware (required)
+            simulate: Ignored - always uses hardware
         """
         self.robot = robot
-        self.simulate = simulate or (robot is None)
         self.gpg = None
 
-        if not self.simulate and robot and hasattr(robot, 'gpg') and robot.gpg:
+        if robot and hasattr(robot, 'gpg') and robot.gpg:
             self.gpg = robot.gpg
             logger.info("Drive controller: Hardware mode")
         else:
-            logger.info("Drive controller: Simulation mode")
+            logger.error("Drive controller: ❌ GoPiGo3 hardware (gpg) not available!")
+            logger.error("  Check robot initialization and hardware connection")
 
     def set_motor_dps(self, left_dps: float, right_dps: float):
         """
@@ -49,17 +49,17 @@ class Drive:
             left_dps: Left motor speed (-300 to 300)
             right_dps: Right motor speed (-300 to 300)
         """
-        if self.simulate:
-            logger.info(f"[DRIVE] Motors: L={left_dps:.0f} DPS, R={right_dps:.0f} DPS")
-            return
+        if not self.gpg:
+            logger.error(f"[DRIVE] ❌ Cannot set motor speeds - GoPiGo3 hardware not available")
+            raise RuntimeError("GoPiGo3 hardware (gpg) not available - cannot control motors")
 
-        if self.gpg:
-            try:
-                self.gpg.set_motor_dps(self.gpg.MOTOR_LEFT, left_dps)
-                self.gpg.set_motor_dps(self.gpg.MOTOR_RIGHT, right_dps)
-                logger.debug(f"Motors set: L={left_dps:.0f} DPS, R={right_dps:.0f} DPS")
-            except Exception as e:
-                logger.error(f"Failed to set motor speeds: {e}")
+        try:
+            self.gpg.set_motor_dps(self.gpg.MOTOR_LEFT, left_dps)
+            self.gpg.set_motor_dps(self.gpg.MOTOR_RIGHT, right_dps)
+            logger.debug(f"Motors set: L={left_dps:.0f} DPS, R={right_dps:.0f} DPS")
+        except Exception as e:
+            logger.error(f"[DRIVE] ❌ Failed to set motor speeds: {e}")
+            raise
 
     def set_speed(self, left_speed: float, right_speed: float):
         """
@@ -73,16 +73,15 @@ class Drive:
 
     def stop(self):
         """Stop both motors immediately."""
-        if self.simulate:
-            logger.info("[DRIVE] STOP")
+        if not self.gpg:
+            logger.warning("[DRIVE] ⚠️  Cannot stop - GoPiGo3 hardware not available")
             return
 
-        if self.gpg:
-            try:
-                self.gpg.stop()
-                logger.debug("Motors stopped")
-            except Exception as e:
-                logger.error(f"Failed to stop motors: {e}")
+        try:
+            self.gpg.stop()
+            logger.debug("Motors stopped")
+        except Exception as e:
+            logger.error(f"[DRIVE] ❌ Failed to stop motors: {e}")
 
     def forward(self, speed: Optional[float] = None):
         """
@@ -132,29 +131,25 @@ class Drive:
             distance_cm: Distance in centimeters (negative = backward)
             speed: Speed in DPS (default: 200)
         """
+        if not self.gpg:
+            logger.error(f"[DRIVE] ❌ Cannot drive - GoPiGo3 hardware (gpg) not available")
+            raise RuntimeError("GoPiGo3 hardware not available - cannot drive")
+
         speed = speed or self.DEFAULT_SPEED
         direction = "forward" if distance_cm > 0 else "backward"
 
-        if self.simulate:
-            logger.info(f"[DRIVE] ⚠️  SIMULATION MODE: Would drive {abs(distance_cm):.1f}cm {direction} at {speed} DPS")
-            logger.info(f"[DRIVE] ⚠️  Robot will NOT actually move in simulation mode")
-            return
-
-        if self.gpg:
-            try:
-                logger.info(f"[DRIVE] Driving {abs(distance_cm):.1f}cm {direction} at {speed} DPS...")
-                if distance_cm > 0:
-                    self.gpg.drive_cm(distance_cm, blocking=True)
-                else:
-                    self.gpg.drive_cm(distance_cm, blocking=True)
-                logger.info(f"[DRIVE] ✅ Completed driving {abs(distance_cm):.1f}cm {direction}")
-            except Exception as e:
-                logger.error(f"[DRIVE] ❌ Failed to drive distance: {e}")
-                import traceback
-                traceback.print_exc()
-        else:
-            logger.error(f"[DRIVE] ❌ GoPiGo3 hardware (gpg) not available - cannot drive")
-            logger.error(f"[DRIVE] Check robot initialization and hardware connection")
+        try:
+            logger.info(f"[DRIVE] Driving {abs(distance_cm):.1f}cm {direction} at {speed} DPS...")
+            if distance_cm > 0:
+                self.gpg.drive_cm(distance_cm, blocking=True)
+            else:
+                self.gpg.drive_cm(distance_cm, blocking=True)
+            logger.info(f"[DRIVE] ✅ Completed driving {abs(distance_cm):.1f}cm {direction}")
+        except Exception as e:
+            logger.error(f"[DRIVE] ❌ Failed to drive distance: {e}")
+            import traceback
+            traceback.print_exc()
+            raise
 
     def turn_degrees(self, degrees: float, speed: Optional[float] = None):
         """
@@ -164,25 +159,21 @@ class Drive:
             degrees: Angle to turn (positive = right, negative = left)
             speed: Turn speed (not used by GoPiGo3 turn_degrees, kept for compatibility)
         """
-        direction = "right" if degrees > 0 else "left"
-        
-        if self.simulate:
-            logger.info(f"[DRIVE] ⚠️  SIMULATION MODE: Would turn {abs(degrees):.1f}° {direction}")
-            logger.info(f"[DRIVE] ⚠️  Robot will NOT actually turn in simulation mode")
-            return
+        if not self.gpg:
+            logger.error(f"[DRIVE] ❌ Cannot turn - GoPiGo3 hardware (gpg) not available")
+            raise RuntimeError("GoPiGo3 hardware not available - cannot turn")
 
-        if self.gpg:
-            try:
-                logger.info(f"[DRIVE] Turning {abs(degrees):.1f}° {direction}...")
-                self.gpg.turn_degrees(degrees, blocking=True)
-                logger.info(f"[DRIVE] ✅ Completed turning {abs(degrees):.1f}° {direction}")
-            except Exception as e:
-                logger.error(f"[DRIVE] ❌ Failed to turn: {e}")
-                import traceback
-                traceback.print_exc()
-        else:
-            logger.error(f"[DRIVE] ❌ GoPiGo3 hardware (gpg) not available - cannot turn")
-            logger.error(f"[DRIVE] Check robot initialization and hardware connection")
+        direction = "right" if degrees > 0 else "left"
+
+        try:
+            logger.info(f"[DRIVE] Turning {abs(degrees):.1f}° {direction}...")
+            self.gpg.turn_degrees(degrees, blocking=True)
+            logger.info(f"[DRIVE] ✅ Completed turning {abs(degrees):.1f}° {direction}")
+        except Exception as e:
+            logger.error(f"[DRIVE] ❌ Failed to turn: {e}")
+            import traceback
+            traceback.print_exc()
+            raise
 
     def get_motor_status(self) -> dict:
         """
@@ -191,24 +182,17 @@ class Drive:
         Returns:
             Dictionary with motor encoder values and flags
         """
-        if self.simulate:
+        if not self.gpg:
+            logger.error("[DRIVE] ❌ Cannot read motor status - GoPiGo3 hardware not available")
+            return {'error': 'Hardware not available'}
+
+        try:
+            left_enc = self.gpg.get_motor_encoder(self.gpg.MOTOR_LEFT)
+            right_enc = self.gpg.get_motor_encoder(self.gpg.MOTOR_RIGHT)
             return {
-                'left_encoder': 0,
-                'right_encoder': 0,
-                'left_flags': 0,
-                'right_flags': 0
+                'left_encoder': left_enc,
+                'right_encoder': right_enc,
             }
-
-        if self.gpg:
-            try:
-                left_enc = self.gpg.get_motor_encoder(self.gpg.MOTOR_LEFT)
-                right_enc = self.gpg.get_motor_encoder(self.gpg.MOTOR_RIGHT)
-                return {
-                    'left_encoder': left_enc,
-                    'right_encoder': right_enc,
-                }
-            except Exception as e:
-                logger.error(f"Failed to read motor status: {e}")
-                return {'error': str(e)}
-
-        return {}
+        except Exception as e:
+            logger.error(f"[DRIVE] ❌ Failed to read motor status: {e}")
+            return {'error': str(e)}

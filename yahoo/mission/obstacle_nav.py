@@ -37,8 +37,8 @@ class ObstacleNavigator:
     
     def _init_sensors(self):
         """Initialize distance sensor and IMU if available."""
-        if self.robot.simulate or not self.robot.gpg:
-            logger.info("[OBSTACLE-NAV] Running in simulation mode - sensors disabled")
+        if not self.robot.gpg:
+            logger.warning("[OBSTACLE-NAV] ⚠️  GoPiGo3 hardware not available - sensors disabled")
             return
         
         # Initialize distance sensor
@@ -216,8 +216,6 @@ class ObstacleNavigator:
         if not check_obstacles or not self.distance_sensor:
             # No obstacle detection - use simple drive
             logger.info(f"[OBSTACLE-NAV] Driving {distance_cm:.1f}cm (no obstacle detection)")
-            if self.robot.simulate:
-                logger.info(f"[OBSTACLE-NAV] ⚠️  SIMULATION MODE - Robot will not actually move")
             self.robot.drive.drive_cm(distance_cm)
             logger.info(f"[OBSTACLE-NAV] Drive command completed")
             return True
