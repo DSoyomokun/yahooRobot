@@ -1,26 +1,22 @@
+import cv2
 from typing import Optional
 from yahoo.cameras.camera_config import CameraConfig
 
-def open_camera(cfg: CameraConfig) -> Optional['Picamera2']:
+def open_camera(cfg: CameraConfig) -> Optional[cv2.VideoCapture]:
     """
-    Open camera using PiCamera2 (GoPiGo only - no USB/webcam support).
-    Returns Picamera2 object or None if failed.
+    Open camera using OpenCV VideoCapture (works with old picamera library).
+    Returns VideoCapture object or None if failed.
     """
-    try:
-        from picamera2 import Picamera2
-        picam = Picamera2()
-        picam.configure(picam.create_preview_configuration(
-            main={"size": (cfg.width, cfg.height)}
-        ))
-        picam.start()
-        print(f"[CAMERA] Using PiCamera2 for '{cfg.name}' ({cfg.width}x{cfg.height})")
-        return picam
-    except ImportError:
-        print(f"[ERROR] PiCamera2 not available. This scanner requires GoPiGo with Raspberry Pi Camera Module.")
-        print(f"[ERROR] Install with: pip3 install picamera2")
+    cap = cv2.VideoCapture(cfg.index)
+    
+    if not cap.isOpened():
+        print(f"[ERROR] Could not open camera '{cfg.name}' at index {cfg.index}")
+        print(f"[ERROR] For CSI camera on Pi, ensure camera is enabled: sudo raspi-config")
         return None
-    except Exception as e:
-        print(f"[ERROR] Failed to initialize PiCamera2: {e}")
-        print(f"[ERROR] Check camera is enabled: sudo raspi-config → Interface Options → Camera")
-        return None
+    
+    cap.set(cv2.CAP_PROP_FRAME_WIDTH, cfg.width)
+    cap.set(cv2.CAP_PROP_FRAME_HEIGHT, cfg.height)
+    
+    print(f"[CAMERA] Using OpenCV VideoCapture for '{cfg.name}' ({cfg.width}x{cfg.height})")
+    return cap
 

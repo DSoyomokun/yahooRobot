@@ -4,6 +4,7 @@ Provides low-level motor control with simulation support.
 """
 
 import logging
+import time
 from typing import Optional
 
 logger = logging.getLogger(__name__)
@@ -141,13 +142,18 @@ class Drive:
 
         if self.gpg:
             try:
-                if distance_cm > 0:
-                    self.gpg.drive_cm(distance_cm, blocking=True)
-                else:
-                    self.gpg.drive_cm(distance_cm, blocking=True)
-                logger.debug(f"Drove {distance_cm:.1f}cm")
+                # Use blocking=False to avoid hanging, then wait with timeout
+                logger.info(f"[DRIVE] Calling gpg.drive_cm({distance_cm:.1f}, blocking=True)...")
+                self.gpg.drive_cm(distance_cm, blocking=True)
+
+              
+
+                logger.info(f"[DRIVE] ✅ drive_cm() completed - moved {abs(distance_cm):.1f}cm")
             except Exception as e:
-                logger.error(f"Failed to drive distance: {e}")
+                logger.error(f"[DRIVE] ❌ Failed to drive distance: {e}")
+                import traceback
+                traceback.print_exc()
+                raise  # Re-raise so caller knows it failed
 
     def turn_degrees(self, degrees: float, speed: Optional[float] = None):
         """
@@ -164,10 +170,86 @@ class Drive:
 
         if self.gpg:
             try:
+                # Use blocking=True (blocking=False doesn't work with new chassis encoders)
+                logger.info(f"[DRIVE] Turning {degrees:.1f}° {'right' if degrees > 0 else 'left'} at {self.TURN_SPEED} DPS...")
                 self.gpg.turn_degrees(degrees, blocking=True)
-                logger.debug(f"Turned {degrees:.1f}°")
+
+                logger.info(f"[DRIVE] ✅ Turn complete - turned {degrees:.1f}° {'right' if degrees > 0 else 'left'}")
             except Exception as e:
-                logger.error(f"Failed to turn: {e}")
+                logger.error(f"[DRIVE] ❌ Failed to turn: {e}")
+                import traceback
+                traceback.print_exc()
+                raise
+
+    def turn_right_timed(self, duration_seconds: float, speed: Optional[float] = None):
+        """
+        Turn right for a specific duration (time-based, no encoders).
+        Use this when encoder-based turning doesn't work.
+
+        Args:
+            duration_seconds: How long to turn (e.g., 1.5 for ~90 degrees)
+            speed: Turn speed in DPS (default: 150)
+        """
+        speed = speed or self.TURN_SPEED
+
+        if self.simulate:
+            logger.info(f"[DRIVE] Turn RIGHT for {duration_seconds:.2f}s at {speed} DPS")
+            return
+
+        if self.gpg:
+            try:
+                logger.info(f"[DRIVE] Turning RIGHT for {duration_seconds:.2f}s at {speed} DPS...")
+
+                # Set motors to turn right (left forward, right backward)
+                self.gpg.set_motor_dps(self.gpg.MOTOR_LEFT, speed)
+                self.gpg.set_motor_dps(self.gpg.MOTOR_RIGHT, -speed)
+
+                # Wait for specified duration
+                time.sleep(duration_seconds)
+
+                # Stop motors
+                self.gpg.stop()
+
+                logger.info(f"[DRIVE] ✅ Turn RIGHT complete ({duration_seconds:.2f}s)")
+            except Exception as e:
+                logger.error(f"[DRIVE] ❌ Failed to turn right: {e}")
+                self.gpg.stop()  # Ensure motors stop on error
+                raise
+
+    def turn_left_timed(self, duration_seconds: float, speed: Optional[float] = None):
+        """
+        Turn left for a specific duration (time-based, no encoders).
+        Use this when encoder-based turning doesn't work.
+
+        Args:
+            duration_seconds: How long to turn (e.g., 1.5 for ~90 degrees)
+            speed: Turn speed in DPS (default: 150)
+        """
+        speed = speed or self.TURN_SPEED
+
+        if self.simulate:
+            logger.info(f"[DRIVE] Turn LEFT for {duration_seconds:.2f}s at {speed} DPS")
+            return
+
+        if self.gpg:
+            try:
+                logger.info(f"[DRIVE] Turning LEFT for {duration_seconds:.2f}s at {speed} DPS...")
+
+                # Set motors to turn left (left backward, right forward)
+                self.gpg.set_motor_dps(self.gpg.MOTOR_LEFT, -speed)
+                self.gpg.set_motor_dps(self.gpg.MOTOR_RIGHT, speed)
+
+                # Wait for specified duration
+                time.sleep(duration_seconds)
+
+                # Stop motors
+                self.gpg.stop()
+
+                logger.info(f"[DRIVE] ✅ Turn LEFT complete ({duration_seconds:.2f}s)")
+            except Exception as e:
+                logger.error(f"[DRIVE] ❌ Failed to turn left: {e}")
+                self.gpg.stop()  # Ensure motors stop on error
+                raise
 
     def get_motor_status(self) -> dict:
         """

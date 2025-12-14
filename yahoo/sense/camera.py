@@ -1,6 +1,5 @@
 import cv2
-import numpy as np
-from typing import Optional, Union
+from typing import Optional
 from yahoo.config.cameras import CameraConfig
 
 
@@ -14,75 +13,54 @@ def _is_raspberry_pi() -> bool:
 
 
 class CameraWrapper:
-    """Wrapper to support both PiCamera2 and OpenCV VideoCapture."""
+    """Wrapper for OpenCV VideoCapture (compatible interface)."""
     
-    def __init__(self, picam=None, cap=None):
-        self.picam = picam
+    def __init__(self, cap):
         self.cap = cap
-        self.camera_type = "picamera2" if picam else "opencv"
     
     def read(self):
         """Read a frame, compatible with OpenCV VideoCapture interface."""
-        if self.camera_type == "picamera2":
-            try:
-                frame = self.picam.capture_array()
-                # PiCamera2 returns RGB, convert to BGR for OpenCV
-                if len(frame.shape) == 3:
-                    frame = cv2.cvtColor(frame, cv2.COLOR_RGB2BGR)
-                return True, frame
-            except Exception as e:
-                print(f"[ERROR] PiCamera2 capture failed: {e}")
-                return False, None
-        else:
-            return self.cap.read()
+        return self.cap.read()
     
     def isOpened(self):
         """Check if camera is opened."""
-        if self.camera_type == "picamera2":
-            return self.picam is not None
         return self.cap is not None and self.cap.isOpened()
     
     def release(self):
         """Release camera resources."""
-        if self.camera_type == "picamera2" and self.picam:
-            try:
-                self.picam.stop()
-                self.picam.close()
-            except:
-                pass
-        elif self.cap:
+        if self.cap:
             self.cap.release()
 
 
 def open_camera(cfg: CameraConfig) -> Optional[CameraWrapper]:
     """
     Open a camera using a CameraConfig.
-    For CSI cameras on Raspberry Pi, tries PiCamera2 first, then falls back to OpenCV.
+    Uses OpenCV VideoCapture directly (works with old picamera library on Raspberry Pi).
     Returns a CameraWrapper (compatible with OpenCV VideoCapture interface) or None if it fails.
     """
-    # For CSI camera on Raspberry Pi, try PiCamera2 first
-    if cfg.name == "pi_csi" and _is_raspberry_pi():
-        try:
-            from picamera2 import Picamera2
-            picam = Picamera2()
-            # Use still configuration for high resolution scanning
-            picam.configure(picam.create_still_configuration(
-                main={"size": (cfg.width, cfg.height)}
-            ))
-            picam.start()
-            print(f"[CAMERA] Using PiCamera2 for '{cfg.name}' ({cfg.width}x{cfg.height})")
-            return CameraWrapper(picam=picam)
-        except ImportError:
-            print(f"[WARN] PiCamera2 not available, trying OpenCV VideoCapture")
-        except Exception as e:
-            print(f"[WARN] PiCamera2 failed: {e}, trying OpenCV VideoCapture")
+    # Check if device exists (for CSI camera on Pi)
+    if _is_raspberry_pi() and cfg.name == "pi_csi":
+        import os
+        video_device = f"/dev/video{cfg.index}"
+        if not os.path.exists(video_device):
+            print(f"[ERROR] Camera device not found: {video_device}")
+            print(f"[ERROR] Check camera is connected and enabled:")
+            print(f"[ERROR]   1. Run: sudo raspi-config")
+            print(f"[ERROR]   2. Go to: Interface Options → Camera → Enable")
+            print(f"[ERROR]   3. Reboot: sudo reboot")
+            return None
     
-    # Fallback to OpenCV VideoCapture
+    # Use OpenCV VideoCapture directly (same approach as gesture detection)
     cap = cv2.VideoCapture(cfg.index)
 
     if not cap.isOpened():
         print(f"[ERROR] Could not open camera '{cfg.name}' at index {cfg.index}")
-        print(f"[ERROR] For CSI camera on Pi, ensure camera is enabled: sudo raspi-config")
+        if _is_raspberry_pi() and cfg.name == "pi_csi":
+            print(f"[ERROR] Troubleshooting steps:")
+            print(f"[ERROR]   1. Check camera is enabled: sudo raspi-config → Interface Options → Camera")
+            print(f"[ERROR]   2. Check device exists: ls -l /dev/video*")
+            print(f"[ERROR]   3. Test camera: libcamera-still -o test.jpg")
+            print(f"[ERROR]   4. Reboot if needed: sudo reboot")
         return None
 
     cap.set(cv2.CAP_PROP_FRAME_WIDTH, cfg.width)
