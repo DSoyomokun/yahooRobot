@@ -119,6 +119,16 @@ class RowTraversal:
                 self.robot.drive.turn_degrees(90)  # Positive = right
                 time.sleep(0.5)
                 logger.info(f"   Ready to drive to next desk")
+            
+            # After visiting Desk 2, do a 180° turn
+            if desk.id == 2:
+                logger.info(f"\n{'='*60}")
+                logger.info(f"🔄 180° TURN AT DESK 2")
+                logger.info(f"{'='*60}")
+                logger.info(f"\n↻  Turning 180° to reverse direction...")
+                self.robot.drive.turn_degrees(180)
+                time.sleep(0.5)
+                logger.info(f"✅ 180° turn complete - now facing opposite direction")
 
         logger.info("\n" + "=" * 60)
         logger.info("✅ ROW TRAVERSAL COMPLETE!")
