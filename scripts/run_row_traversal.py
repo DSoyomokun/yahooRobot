@@ -50,27 +50,36 @@ class RowTraversal:
             logger.info(f"DEBUG MODE: Limited to {limit_desks} desks")
         logger.info("=" * 60)
 
+        # HARDCODED DISTANCES (measured from real setup)
+        # Desk 1 → Desk 2: 52 cm
+        # Desk 2 → Desk 3: 20 cm + 89 cm (gap) + 10 cm = 119 cm
+        # Desk 3 → Desk 4: 52 cm
+        distances = {
+            1: 0,    # Already at Desk 1
+            2: 52,   # Desk 1 → Desk 2
+            3: 119,  # Desk 2 → Desk 3 (20 + 89 gap + 10)
+            4: 52    # Desk 3 → Desk 4
+        }
+
         # Limit desks if in debug mode
-        desks_to_visit = self.desks[:limit_desks] if limit_desks else self.desks
+        all_desks = sorted(self.config.desks, key=lambda d: d.id)
+        desks_to_visit = all_desks[:limit_desks] if limit_desks else all_desks
 
         logger.info(f"\n🤖 STARTING POSITION:")
         logger.info(f"   - In front of Desk 1")
         logger.info(f"   - Facing straight along the row (parallel to desks)")
         logger.info(f"\n📍 DESKS TO VISIT: {len(desks_to_visit)}")
-        for i, desk in enumerate(desks_to_visit, 1):
-            logger.info(f"   {i}. Desk {desk.id} at x={desk.x_cm:.1f} cm")
+        for desk in desks_to_visit:
+            dist = distances.get(desk.id, 0)
+            logger.info(f"   Desk {desk.id}: drive {dist} cm from previous")
 
         logger.info(f"\n🔄 MOVEMENT PATTERN:")
-        logger.info(f"   1. Drive straight to desk position")
-        logger.info(f"   2. Turn LEFT 90° to face desk")
-        logger.info(f"   3. Pause at desk")
-        logger.info(f"   4. Turn RIGHT 90° back to straight")
-        logger.info(f"   5. Continue to next desk")
+        logger.info(f"   1. Turn LEFT 90° to face desk")
+        logger.info(f"   2. Hand out paper (pause)")
+        logger.info(f"   3. Turn RIGHT 90° back to straight")
+        logger.info(f"   4. Drive to next desk position")
 
         input("\n⚠️  Press ENTER to start traversal...")
-
-        # Track current position along the row
-        current_x = desks_to_visit[0].x_cm  # Start at first desk position
 
         # Visit each desk
         for i, desk in enumerate(desks_to_visit):
@@ -78,17 +87,13 @@ class RowTraversal:
             logger.info(f"DESK {desk.id} (#{i+1}/{len(desks_to_visit)})")
             logger.info(f"{'='*60}")
 
-            # Calculate distance to drive
-            distance_to_drive = abs(desk.x_cm - current_x)
+            # Drive to desk position (if not first desk)
+            distance_to_drive = distances.get(desk.id, 0)
 
-            if distance_to_drive > 1.0:  # Only drive if significant distance
-                logger.info(f"\n📏 Distance to drive: {distance_to_drive:.1f} cm")
-                logger.info(f"   From x={current_x:.1f} to x={desk.x_cm:.1f}")
-
-                logger.info(f"\n🚗 Driving {distance_to_drive:.1f} cm...")
+            if distance_to_drive > 1.0:
+                logger.info(f"\n📏 Distance to drive: {distance_to_drive} cm")
+                logger.info(f"🚗 Driving {distance_to_drive} cm...")
                 self.robot.drive.drive_cm(distance_to_drive)
-
-                current_x = desk.x_cm
                 logger.info(f"✅ Arrived at Desk {desk.id} position")
             else:
                 logger.info(f"\n✅ Already at Desk {desk.id} position")
@@ -98,14 +103,14 @@ class RowTraversal:
             self.robot.drive.turn_degrees(-90)  # Negative = left
             time.sleep(0.5)
 
-            logger.info(f"\n📍 STOPPED AT DESK {desk.id}")
-            logger.info(f"   Facing the desk (perpendicular to row)")
+            logger.info(f"\n📍 AT DESK {desk.id}")
+            logger.info(f"   Facing the desk - ready to hand out paper")
 
-            # Pause
+            # Pause (simulating paper handout)
             if pause_after_each:
-                input(f"\n⏸️  Paused at Desk {desk.id}. Press ENTER to continue...")
+                input(f"\n📄 Press ENTER after handing out paper at Desk {desk.id}...")
             else:
-                logger.info(f"   Pausing for 2 seconds...")
+                logger.info(f"   📄 Handing out paper (pausing 2 seconds)...")
                 time.sleep(2.0)
 
             # Turn right to face along row again (unless last desk)
@@ -113,7 +118,7 @@ class RowTraversal:
                 logger.info(f"\n↱  Turning RIGHT 90° back to straight...")
                 self.robot.drive.turn_degrees(90)  # Positive = right
                 time.sleep(0.5)
-                logger.info(f"   Facing along row, ready for next desk")
+                logger.info(f"   Ready to drive to next desk")
 
         logger.info("\n" + "=" * 60)
         logger.info("✅ ROW TRAVERSAL COMPLETE!")
