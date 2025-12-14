@@ -1,27 +1,26 @@
 #!/usr/bin/env python3
 """
-Run Full Row Traversal - Story 1.4
+Row Traversal - Story 1.4
 
-This script commands the robot to traverse a full row of desks,
-as defined in the room configuration file.
-
-Path: Origin -> Desk 1 -> ... -> Last Desk -> Origin
+NEW APPROACH:
+- Robot starts in front of Desk 1, facing along the row
+- Drives straight along the aisle
+- At each desk: turn left to face desk, then turn right to continue
+- Pattern: Desk 1 → Desk 2 → Desk 3 → Desk 4
 """
 
 import sys
 import time
 import logging
-import math
 from pathlib import Path
 
-# Add parent directory to path for imports
+# Add parent directory to path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from yahoo.robot import Robot
 from yahoo.config.row_loader import load_row_config
-from yahoo.config.row_loader import RowConfig
 
-# Logging setup
+# Setup logging
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
@@ -30,101 +29,129 @@ logger = logging.getLogger(__name__)
 
 
 class RowTraversal:
-    """Handles the logic for the row traversal mission."""
+    """Handles row traversal along the aisle in front of desks."""
 
-    def __init__(self, robot: Robot, config: RowConfig):
+    def __init__(self, robot, config):
         self.robot = robot
         self.config = config
+        self.desks = sorted(config.desks, key=lambda d: d.x_cm)  # Sort by X position
 
-        # Get origin from config
-        origin_x, origin_y, origin_heading = config.get_origin()
+    def run(self, limit_desks=None, pause_after_each=False):
+        """
+        Execute row traversal.
 
-        # State tracking
-        self.current_x = origin_x
-        self.current_y = origin_y
-        self.current_heading = origin_heading
+        Args:
+            limit_desks: If set, only visit first N desks (for debugging)
+            pause_after_each: If True, wait for user input after each desk
+        """
+        logger.info("=" * 60)
+        logger.info("ROW TRAVERSAL - Story 1.4")
+        if limit_desks:
+            logger.info(f"DEBUG MODE: Limited to {limit_desks} desks")
+        logger.info("=" * 60)
 
-    def _turn_to_heading(self, target_heading: float):
-        """Turn the robot to a specific absolute heading."""
-        turn_angle = (target_heading - self.current_heading + 180) % 360 - 180
-        if abs(turn_angle) > 1.0:  # Tolerance for small errors
-            logger.info(f"Turning {turn_angle:.1f}° to face {target_heading}°")
-            self.robot.drive.turn_degrees(turn_angle)
-            self.current_heading = target_heading
-        time.sleep(0.5)
+        # Limit desks if in debug mode
+        desks_to_visit = self.desks[:limit_desks] if limit_desks else self.desks
 
-    def _navigate_to_waypoint(self, name: str, target_x: float, target_y: float):
-        """Navigate from current position to a target waypoint."""
-        logger.info(f"--- Navigating to: {name} ({target_x:.1f}, {target_y:.1f}) ---")
+        logger.info(f"\n🤖 STARTING POSITION:")
+        logger.info(f"   - In front of Desk 1")
+        logger.info(f"   - Facing straight along the row (parallel to desks)")
+        logger.info(f"\n📍 DESKS TO VISIT: {len(desks_to_visit)}")
+        for i, desk in enumerate(desks_to_visit, 1):
+            logger.info(f"   {i}. Desk {desk.id} at x={desk.x_cm:.1f} cm")
 
-        # 1. Drive along Y-axis to align with the target's Y-coordinate
-        delta_y = target_y - self.current_y
-        if abs(delta_y) > 1.0:
-            heading = 0 if delta_y > 0 else 180
-            self._turn_to_heading(heading)
-            logger.info(f"Driving {abs(delta_y):.1f} cm along Y-axis")
-            self.robot.drive.drive_cm(abs(delta_y))
-            self.current_y = target_y
+        logger.info(f"\n🔄 MOVEMENT PATTERN:")
+        logger.info(f"   1. Drive straight to desk position")
+        logger.info(f"   2. Turn LEFT 90° to face desk")
+        logger.info(f"   3. Pause at desk")
+        logger.info(f"   4. Turn RIGHT 90° back to straight")
+        logger.info(f"   5. Continue to next desk")
+
+        input("\n⚠️  Press ENTER to start traversal...")
+
+        # Track current position along the row
+        current_x = desks_to_visit[0].x_cm  # Start at first desk position
+
+        # Visit each desk
+        for i, desk in enumerate(desks_to_visit):
+            logger.info(f"\n{'='*60}")
+            logger.info(f"DESK {desk.id} (#{i+1}/{len(desks_to_visit)})")
+            logger.info(f"{'='*60}")
+
+            # Calculate distance to drive
+            distance_to_drive = abs(desk.x_cm - current_x)
+
+            if distance_to_drive > 1.0:  # Only drive if significant distance
+                logger.info(f"\n📏 Distance to drive: {distance_to_drive:.1f} cm")
+                logger.info(f"   From x={current_x:.1f} to x={desk.x_cm:.1f}")
+
+                logger.info(f"\n🚗 Driving {distance_to_drive:.1f} cm...")
+                self.robot.drive.drive_cm(distance_to_drive)
+
+                current_x = desk.x_cm
+                logger.info(f"✅ Arrived at Desk {desk.id} position")
+            else:
+                logger.info(f"\n✅ Already at Desk {desk.id} position")
+
+            # Turn left to face desk
+            logger.info(f"\n↰  Turning LEFT 90° to face Desk {desk.id}...")
+            self.robot.drive.turn_degrees(-90)  # Negative = left
             time.sleep(0.5)
 
-        # 2. Drive along X-axis to align with the target's X-coordinate
-        delta_x = target_x - self.current_x
-        if abs(delta_x) > 1.0:
-            heading = 90 if delta_x > 0 else 270
-            self._turn_to_heading(heading)
-            logger.info(f"Driving {abs(delta_x):.1f} cm along X-axis")
-            self.robot.drive.drive_cm(abs(delta_x))
-            self.current_x = target_x
-            time.sleep(0.5)
+            logger.info(f"\n📍 STOPPED AT DESK {desk.id}")
+            logger.info(f"   Facing the desk (perpendicular to row)")
 
-        logger.info(f"Arrived at {name}. Current position: ({self.current_x:.1f}, {self.current_y:.1f})")
+            # Pause
+            if pause_after_each:
+                input(f"\n⏸️  Paused at Desk {desk.id}. Press ENTER to continue...")
+            else:
+                logger.info(f"   Pausing for 2 seconds...")
+                time.sleep(2.0)
 
-    def run(self):
-        """Execute the full row traversal."""
-        logger.info("=" * 50)
-        logger.info("Starting Full Row Traversal Mission")
-        logger.info("=" * 50)
+            # Turn right to face along row again (unless last desk)
+            if i < len(desks_to_visit) - 1:
+                logger.info(f"\n↱  Turning RIGHT 90° back to straight...")
+                self.robot.drive.turn_degrees(90)  # Positive = right
+                time.sleep(0.5)
+                logger.info(f"   Facing along row, ready for next desk")
 
-        # Get origin coordinates
-        origin_x, origin_y, _ = self.config.get_origin()
-
-        # Create list of waypoints
-        waypoints = [
-            ("Origin", origin_x, origin_y)
-        ] + [
-            (f"Desk {i+1}", desk.x_cm, desk.y_cm) for i, desk in enumerate(self.config.desks)
-        ] + [
-            ("Origin", origin_x, origin_y)
-        ]
-
-        logger.info("Initial position: "
-                    f"({self.current_x:.1f}, {self.current_y:.1f}) "
-                    f"at {self.current_heading}°")
-
-        # Sequentially navigate to each waypoint
-        for i, (name, x, y) in enumerate(waypoints):
-            # The first move is from the current position to the first waypoint
-            if i == 0:
-                continue
-
-            self._navigate_to_waypoint(name, x, y)
-            
-            logger.info(f"Pausing at {name}...")
-            time.sleep(2.0) # Pause at each waypoint
-
-        logger.info("=" * 50)
-        logger.info("✅ Full Row Traversal Mission Complete!")
-        logger.info("=" * 50)
+        logger.info("\n" + "=" * 60)
+        logger.info("✅ ROW TRAVERSAL COMPLETE!")
+        logger.info("=" * 60)
+        logger.info(f"\nFinal position: At Desk {desks_to_visit[-1].id}")
+        logger.info(f"Facing: Perpendicular to row (toward desk)")
 
 
 def main():
     """Main entry point."""
     import argparse
-    parser = argparse.ArgumentParser(description='Execute full row traversal (Story 1.4)')
-    parser.add_argument('--simulate', action='store_true',
-                        help='Run in simulation mode (no hardware)')
+    parser = argparse.ArgumentParser(
+        description='Execute row traversal (Story 1.4)',
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""
+Examples:
+  # Full traversal (all 4 desks)
+  python3 scripts/run_row_traversal.py
+
+  # Debug: Only visit first 2 desks
+  python3 scripts/run_row_traversal.py --limit-desks 2
+
+  # Debug with manual pause after each desk
+  python3 scripts/run_row_traversal.py --limit-desks 2 --pause
+
+  # Enable detailed debug logging
+  python3 scripts/run_row_traversal.py --limit-desks 2 --debug
+
+Setup:
+  Position robot in front of Desk 1, facing along the row (parallel to desks)
+        """
+    )
+    parser.add_argument('--limit-desks', type=int, metavar='N',
+                       help='Only visit first N desks (for debugging)')
+    parser.add_argument('--pause', action='store_true',
+                       help='Pause and wait for ENTER after each desk')
     parser.add_argument('--debug', action='store_true',
-                        help='Enable debug logging')
+                       help='Enable debug logging')
     args = parser.parse_args()
 
     if args.debug:
@@ -132,21 +159,22 @@ def main():
 
     logger.info("Initializing robot...")
     try:
-        with Robot(simulate=args.simulate) as robot:
-            logger.info(f"Robot initialized (simulate={args.simulate})")
-            logger.info(f"Battery: {robot.get_battery_voltage():.2f}V")
+        with Robot(simulate=False) as robot:
+            logger.info(f"✅ Robot initialized")
+            logger.info(f"   Battery: {robot.get_battery_voltage():.2f}V")
 
             config = load_row_config()
-            logger.info(f"Loaded config for '{config.config.get('name', 'Unnamed Row')}' with {len(config.desks)} desks.")
+            logger.info(f"✅ Config loaded: {len(config.desks)} desks")
 
             traversal = RowTraversal(robot, config)
-            traversal.run()
+            traversal.run(limit_desks=args.limit_desks, pause_after_each=args.pause)
 
     except KeyboardInterrupt:
-        logger.warning("\nTraversal interrupted by user.")
+        logger.warning("\n\nTraversal interrupted by user")
         sys.exit(1)
-    except Exception:
-        logger.exception("An error occurred during the traversal.")
+    except Exception as e:
+        logger.error(f"\n\nTraversal error: {e}")
+        logging.exception("Traversal failed")
         sys.exit(1)
 
 
