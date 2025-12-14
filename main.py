@@ -8,6 +8,7 @@ import argparse
 import logging
 import sys
 import subprocess
+import time
 from pathlib import Path
 from yahoo.robot import Robot
 
@@ -139,11 +140,539 @@ def main():
                 # TODO: Import and start Flask app
                 pass
             else:
-                logger.info("Robot ready. Press Ctrl+C to exit.")
-                # TODO: Start main control loop
-                import time
-                while True:
-                    time.sleep(1)
+                # Movement sequence with obstacle avoidance
+                try:
+                    # Initialize sensors: GoPiGo Distance Sensor + IMU
+                    distance_sensor = None
+                    imu = None
+                    
+                    if not robot.simulate and robot.gpg:
+                        # Initialize GoPiGo Distance Sensor (I2C)
+                        logger.info("Attempting to initialize distance sensor...")
+                        try:
+                            distance_sensor = robot.gpg.init_distance_sensor()
+                            logger.info("  Sensor object created, testing readings...")
+                            
+                            # Test the sensor with multiple readings
+                            test_readings = []
+                            successful_reads = 0
+                            
+                            for i in range(5):
+                                try:
+                                    test_dist = distance_sensor.read_mm()
+                                    test_readings.append(test_dist)
+                                    successful_reads += 1
+                                    logger.info(f"  Test read {i+1}: {test_dist} mm")
+                                    time.sleep(0.2)
+                                except (IOError, OSError) as e:
+                                    logger.error(f"  ❌ Test read {i+1} failed: {e}")
+                                    test_readings.append(None)
+                                except AttributeError as e:
+                                    logger.error(f"  ❌ Sensor method error: {e}")
+                                    logger.error(f"  Sensor object: {distance_sensor}")
+                                    logger.error(f"  Available methods: {dir(distance_sensor)}")
+                                    break
+                                except Exception as e:
+                                    logger.error(f"  ❌ Unexpected error on read {i+1}: {e}")
+                                    test_readings.append(None)
+                            
+                            if successful_reads > 0:
+                                valid_readings = [r for r in test_readings if r is not None]
+                                logger.info("=" * 60)
+                                logger.info("✅ GoPiGo Distance Sensor WORKING!")
+                                logger.info(f"  Successful reads: {successful_reads}/5")
+                                logger.info(f"  Valid readings: {valid_readings} mm")
+                                logger.info("=" * 60)
+                            else:
+                                logger.error("=" * 60)
+                                logger.error("❌ Distance sensor NOT WORKING!")
+                                logger.error("  All test reads failed")
+                                logger.error("=" * 60)
+                                logger.error("TROUBLESHOOTING:")
+                                logger.error("  1. Check sensor is connected to I2C port")
+                                logger.error("  2. Verify I2C is enabled: sudo raspi-config")
+                                logger.error("  3. Check I2C devices: sudo i2cdetect -y 1")
+                                logger.error("  4. Try unplugging and reconnecting sensor")
+                                logger.error("  5. Check sensor power (should be on)")
+                                distance_sensor = None
+                        except AttributeError as e:
+                            logger.error(f"❌ init_distance_sensor() method not found: {e}")
+                            logger.error("  Available methods: " + ", ".join([m for m in dir(robot.gpg) if 'distance' in m.lower() or 'sensor' in m.lower()]))
+                            distance_sensor = None
+                        except Exception as e:
+                            logger.error(f"❌ Could not initialize distance sensor: {e}")
+                            logger.error(f"  Error type: {type(e).__name__}")
+                            logger.error("  Robot will run WITHOUT obstacle detection")
+                            logger.error("  ⚠️  WARNING: Robot may collide with objects!")
+                            distance_sensor = None
+                        
+                        # Initialize IMU (Inertial Measurement Unit)
+                        # Try different methods to access IMU
+                        imu = None
+                        logger.info("Attempting to initialize IMU sensor...")
+                        
+                        # Method 1: Try di_sensors library (recommended method)
+                        try:
+                            from di_sensors.inertial_measurement_unit import InertialMeasurementUnit
+                            logger.info("  Trying di_sensors library...")
+                            # Try different I2C bus options
+                            for bus_name in ["GPG3_AD1", "GPG3_AD2", "RPI_1"]:
+                                try:
+                                    imu = InertialMeasurementUnit(bus=bus_name)
+                                    # Test if it works by reading once
+                                    test_read = imu.read_euler()
+                                    logger.info(f"✅ IMU initialized via di_sensors on bus: {bus_name}")
+                                    break
+                                except Exception as bus_error:
+                                    logger.debug(f"    Bus {bus_name} failed: {bus_error}")
+                                    continue
+                        except ImportError:
+                            logger.debug("  di_sensors library not available")
+                        except Exception as e:
+                            logger.debug(f"  di_sensors method failed: {e}")
+                        
+                        # Method 2: Try easygopigo3 init_imu()
+                        if imu is None:
+                            try:
+                                logger.info("  Trying easygopigo3.init_imu()...")
+                                if hasattr(robot.gpg, 'init_imu'):
+                                    imu = robot.gpg.init_imu()
+                                    logger.info("✅ IMU initialized via init_imu()")
+                            except Exception as e:
+                                logger.debug(f"  init_imu() failed: {e}")
+                        
+                        # Method 3: Try accessing IMU directly
+                        if imu is None:
+                            try:
+                                logger.info("  Trying gpg.imu direct access...")
+                                if hasattr(robot.gpg, 'imu'):
+                                    imu = robot.gpg.imu
+                                    logger.info("✅ IMU accessed via gpg.imu")
+                            except Exception as e:
+                                logger.debug(f"  gpg.imu failed: {e}")
+                        
+                        # Method 4: Try init_gyroscope() or similar
+                        if imu is None:
+                            try:
+                                logger.info("  Trying init_gyroscope()...")
+                                if hasattr(robot.gpg, 'init_gyroscope'):
+                                    imu = robot.gpg.init_gyroscope()
+                                    logger.info("✅ IMU initialized via init_gyroscope()")
+                            except Exception as e:
+                                logger.debug(f"  init_gyroscope() failed: {e}")
+                        
+                        # If still no IMU, provide detailed diagnostics
+                        if imu is None:
+                            logger.warning("=" * 60)
+                            logger.warning("⚠️  IMU sensor NOT detected!")
+                            logger.warning("=" * 60)
+                            
+                            # List available methods for debugging
+                            available_methods = [m for m in dir(robot.gpg) if not m.startswith('_')]
+                            sensor_methods = [m for m in available_methods if 'imu' in m.lower() or 'gyro' in m.lower() or 'accel' in m.lower()]
+                            
+                            logger.warning("TROUBLESHOOTING STEPS:")
+                            logger.warning("  1. Check IMU sensor is connected to I2C port (AD1 or AD2)")
+                            logger.warning("  2. Verify I2C is enabled: sudo raspi-config → Interface Options → I2C")
+                            logger.warning("  3. Check I2C devices: sudo i2cdetect -y 1")
+                            logger.warning("  4. Install di_sensors library:")
+                            logger.warning("     curl -kL dexterindustries.com/update_sensors | bash")
+                            logger.warning("  5. Update GoPiGo3 firmware:")
+                            logger.warning("     curl -kL dexterindustries.com/update_gopigo3 | bash")
+                            logger.warning("")
+                            if sensor_methods:
+                                logger.warning(f"  Available sensor methods: {sensor_methods}")
+                            else:
+                                logger.warning("  No IMU-related methods found in easygopigo3")
+                            logger.warning("=" * 60)
+                        else:
+                            logger.info("✅ IMU sensor ready!")
+                    else:
+                        logger.info("Running in simulation mode - sensors disabled")
+                    
+                    # Warn if no obstacle detection
+                    if distance_sensor is None and not robot.simulate:
+                        logger.error("=" * 60)
+                        logger.error("⚠️  WARNING: NO OBSTACLE DETECTION AVAILABLE!")
+                        logger.error("  The robot will NOT stop for obstacles.")
+                        logger.error("  Make sure you have clear space before running.")
+                        logger.error("=" * 60)
+                    
+                    # Constants for movement and obstacle detection
+                    FEET_TO_CM = 30.48  # 1 foot = 30.48 cm
+                    OBSTACLE_THRESHOLD_CM = 0.5 * FEET_TO_CM  # 15.24 cm (1/2 foot)
+                    TURN_90_DEGREES = 90
+                    CHECK_INTERVAL = 0.1  # Check distance every 100ms (reduced to prevent I/O errors)
+                    DRIVE_SPEED_DPS = 300  # Speed for forward movement (increased for faster movement)
+                    # Approximate speed: 300 DPS ≈ 10.2 cm/s (based on GoPiGo3 wheel diameter)
+                    CM_PER_SECOND = 10.2
+                    
+                    # ODectection movement sequence constants
+                    DISTANCE_2FT_CM = 2.0 * FEET_TO_CM  # 60.96 cm
+                    NEXT_STOP_THRESHOLD_CM = 1.0 * FEET_TO_CM  # 30.48 cm (1 foot)
+                    
+                    def check_obstacle():
+                        """Check if obstacle is within threshold using distance sensor"""
+                        if distance_sensor:
+                            try:
+                                # Read distance from GoPiGo Distance Sensor with retry logic
+                                distance_mm = None
+                                max_retries = 3
+                                
+                                for attempt in range(max_retries):
+                                    try:
+                                        distance_mm = distance_sensor.read_mm()
+                                        break  # Success, exit retry loop
+                                    except (IOError, OSError) as e:
+                                        if attempt < max_retries - 1:
+                                            time.sleep(0.01)  # Brief delay before retry
+                                            continue
+                                        else:
+                                            # Last attempt failed, log and return safe value
+                                            logger.debug(f"Distance sensor I/O error after {max_retries} attempts: {e}")
+                                            return False, None
+                                    except Exception as e:
+                                        # Other errors - log once and return safe value
+                                        logger.debug(f"Distance sensor error: {e}")
+                                        return False, None
+                                
+                                if distance_mm is None:
+                                    return False, None
+                                
+                                distance_cm = distance_mm / 10.0
+                                
+                                # Filter out invalid readings (sensor returns 0 or very large values when out of range)
+                                if distance_cm < 2 or distance_cm > 400:
+                                    return False, None
+                                
+                                return distance_cm < OBSTACLE_THRESHOLD_CM, distance_cm
+                            except Exception as e:
+                                # Catch any unexpected errors
+                                logger.debug(f"Unexpected error reading distance sensor: {e}")
+                                return False, None
+                        return False, None
+                    
+                    def get_heading():
+                        """Get current heading from IMU if available"""
+                        if imu is not None:
+                            try:
+                                euler = imu.read_euler()
+                                if isinstance(euler, (list, tuple)) and len(euler) >= 3:
+                                    return float(euler[2])  # Yaw angle
+                                elif isinstance(euler, dict):
+                                    return float(euler.get('yaw', euler.get('heading', euler.get('z', 0))))
+                            except Exception as e:
+                                logger.debug(f"IMU read error: {e}")
+                        return None
+                    
+                    def avoid_obstacle():
+                        """
+                        Perform tight, quick obstacle avoidance with path recovery using IMU.
+                        Goes around obstacle and returns to original straight-line path.
+                        
+                        Strategy (tightened for speed): 
+                        1. Record initial heading (IMU)
+                        2. Turn right 90°
+                        3. Move forward to clear obstacle (0.75 feet - tighter)
+                        4. Turn left 90° to move parallel to original path
+                        5. Move forward past obstacle (0.25 feet - tighter)
+                        6. Turn left 90° to return to path
+                        7. Move forward to path line (0.75 feet - tighter)
+                        8. Turn right 90° to resume heading
+                        9. Verify heading matches initial heading (IMU correction if needed)
+                        """
+                        logger.warning("🚨 Obstacle detected! Performing avoidance maneuver...")
+                        
+                        # Record initial heading for path recovery
+                        initial_heading = get_heading()
+                        if initial_heading is not None:
+                            logger.info(f"  Initial heading: {initial_heading:.1f}°")
+                        
+                        # Step 1: Turn right 90 degrees to go around obstacle
+                        logger.info("  → Step 1: Turning right 90 degrees...")
+                        robot.drive.turn_degrees(TURN_90_DEGREES)
+                        
+                        # Step 2: Move forward to clear the obstacle (tighter: 0.75 feet)
+                        AVOIDANCE_SIDE_DISTANCE = 0.75 * FEET_TO_CM  # 22.86 cm (tighter)
+                        logger.info("  → Step 2: Moving forward 0.75 feet to clear obstacle...")
+                        
+                        # Check for obstacles while moving around (faster speed during avoidance)
+                        AVOIDANCE_SPEED_DPS = 250  # Faster than normal (250 vs 200 DPS)
+                        robot.drive.forward(AVOIDANCE_SPEED_DPS)
+                        start_time = time.time()
+                        AVOIDANCE_CM_PER_SECOND = 8.5  # Faster speed estimate
+                        side_time = AVOIDANCE_SIDE_DISTANCE / AVOIDANCE_CM_PER_SECOND
+        
+                        while time.time() - start_time < side_time:
+                            has_obstacle, dist = check_obstacle()
+                            if has_obstacle:
+                                robot.drive.stop()
+                                logger.warning(f"  ⚠️  Obstacle still detected at {dist:.1f}cm - adjusting...")
+                                # Move a bit more to clear
+                                robot.drive.drive_cm(5)  # Extra 5cm (reduced from 10cm)
+                                break
+                            time.sleep(CHECK_INTERVAL)
+                        robot.drive.stop()
+                        
+                        # Step 3: Turn left 90 degrees to move parallel to original path
+                        logger.info("  → Step 3: Turning left 90 degrees...")
+                        robot.drive.turn_degrees(-TURN_90_DEGREES)
+                        
+                        # Step 4: Move forward parallel to original path (0.50 feet)
+                        AVOIDANCE_PARALLEL_DISTANCE = 0.50 * FEET_TO_CM  # 15.24 cm
+                        logger.info("  → Step 4: Moving forward 0.50 feet parallel to path...")
+                        robot.drive.forward(AVOIDANCE_SPEED_DPS)
+                        time.sleep(AVOIDANCE_PARALLEL_DISTANCE / AVOIDANCE_CM_PER_SECOND)
+                        robot.drive.stop()
+                        
+                        # Step 5: Turn left 90 degrees to face back toward original path
+                        logger.info("  → Step 5: Turning left 90 degrees...")
+                        robot.drive.turn_degrees(-TURN_90_DEGREES)
+                        
+                        # Step 6: Move forward to return to original path line (tighter: 0.75 feet)
+                        logger.info("  → Step 6: Moving forward 0.75 feet to return to path...")
+                        robot.drive.forward(AVOIDANCE_SPEED_DPS)
+                        time.sleep(AVOIDANCE_SIDE_DISTANCE / AVOIDANCE_CM_PER_SECOND)
+                        robot.drive.stop()
+                        
+                        # Step 7: Turn right 90 degrees to resume original heading
+                        logger.info("  → Step 7: Turning right 90 degrees to resume heading...")
+                        robot.drive.turn_degrees(TURN_90_DEGREES)
+                        
+                        # Step 8: Path correction disabled to prevent overcompensation
+                        # (IMU correction code removed per user request)
+                        
+                        logger.info("✅ Obstacle avoidance complete. Resumed on original path.")
+                    
+                    def drive_with_obstacle_avoidance(distance_cm, forward=True):
+                        """
+                        Drive a specific distance with obstacle detection and avoidance.
+                        If obstacle detected, goes around it and continues remaining distance.
+                        
+                        Args:
+                            distance_cm: Distance to travel in cm
+                            forward: True for forward, False for backward
+                        """
+                        remaining_distance = distance_cm
+                        obstacle_count = 0
+                        
+                        while remaining_distance > 0:
+                            # Check if next stop is within threshold
+                            if remaining_distance <= NEXT_STOP_THRESHOLD_CM:
+                                logger.info(f"  Next stop ({remaining_distance:.1f}cm) is within {NEXT_STOP_THRESHOLD_CM:.1f}cm threshold")
+                                logger.info("  Will still go around obstacles but stop at intended location")
+                            
+                            # Start driving
+                            if forward:
+                                robot.drive.forward(DRIVE_SPEED_DPS)
+                            else:
+                                robot.drive.backward(DRIVE_SPEED_DPS)
+                            
+                            start_time = time.time()
+                            distance_traveled = 0
+                            
+                            # Drive until distance reached or obstacle detected
+                            while distance_traveled < remaining_distance:
+                                # Check for obstacles
+                                has_obstacle, dist = check_obstacle()
+                                
+                                if has_obstacle:
+                                    # Stop and avoid obstacle
+                                    robot.drive.stop()
+                                    obstacle_count += 1
+                                    
+                                    logger.warning("")
+                                    logger.warning(f"🚨 OBSTACLE #{obstacle_count} DETECTED!")
+                                    logger.warning(f"  Distance: {dist:.1f} cm ({dist/30.48:.2f} feet)")
+                                    logger.warning(f"  Remaining distance: {remaining_distance:.1f} cm")
+                                    
+                                    # Perform avoidance maneuver
+                                    avoid_obstacle()
+                                    
+                                    # Update remaining distance (subtract what we traveled before obstacle)
+                                    distance_traveled = (time.time() - start_time) * CM_PER_SECOND
+                                    remaining_distance -= distance_traveled
+                                    
+                                    logger.info(f"  Resuming movement - {remaining_distance:.1f} cm remaining")
+                                    break  # Exit inner loop to restart driving
+                                
+                                # Update distance traveled
+                                elapsed = time.time() - start_time
+                                distance_traveled = elapsed * CM_PER_SECOND
+                                
+                                time.sleep(CHECK_INTERVAL)
+                            
+                            # If we completed the distance without obstacle, stop
+                            if distance_traveled >= remaining_distance:
+                                robot.drive.stop()
+                                remaining_distance = 0
+                        
+                        if obstacle_count > 0:
+                            logger.info(f"  Completed distance with {obstacle_count} obstacle(s) avoided")
+                    
+                    def drive_forward_duration(duration_seconds):
+                        """
+                        Drive forward for a specific duration with obstacle detection and avoidance.
+                        If obstacle detected, goes around it and continues remaining time.
+                        
+                        Args:
+                            duration_seconds: Duration to drive forward in seconds
+                        """
+                        remaining_time = duration_seconds
+                        obstacle_count = 0
+                        start_total_time = time.time()
+                        
+                        while remaining_time > 0:
+                            # Start driving forward
+                            robot.drive.forward(DRIVE_SPEED_DPS)
+                            
+                            segment_start_time = time.time()
+                            
+                            # Drive until time reached or obstacle detected
+                            while (time.time() - segment_start_time) < remaining_time:
+                                # Check for obstacles
+                                has_obstacle, dist = check_obstacle()
+                                
+                                if has_obstacle:
+                                    # Stop and avoid obstacle
+                                    robot.drive.stop()
+                                    obstacle_count += 1
+                                    
+                                    elapsed_segment = time.time() - segment_start_time
+                                    logger.warning("")
+                                    logger.warning(f"🚨 OBSTACLE #{obstacle_count} DETECTED!")
+                                    logger.warning(f"  Distance: {dist:.1f} cm ({dist/30.48:.2f} feet)")
+                                    logger.warning(f"  Remaining time: {remaining_time:.1f} seconds")
+                                    
+                                    # Perform avoidance maneuver
+                                    avoid_obstacle()
+                                    
+                                    # Update remaining time (subtract what we traveled before obstacle)
+                                    remaining_time -= elapsed_segment
+                                    
+                                    logger.info(f"  Resuming movement - {remaining_time:.1f} seconds remaining")
+                                    break  # Exit inner loop to restart driving
+                                
+                                time.sleep(CHECK_INTERVAL)
+                            
+                            # If we completed the time without obstacle, stop
+                            if (time.time() - segment_start_time) >= remaining_time:
+                                robot.drive.stop()
+                                remaining_time = 0
+                        
+                        total_elapsed = time.time() - start_total_time
+                        if obstacle_count > 0:
+                            logger.info(f"  Completed {total_elapsed:.1f} seconds of forward movement with {obstacle_count} obstacle(s) avoided")
+                    
+                    def turn_90_degrees(direction='left'):
+                        """
+                        Turn 90 degrees left or right using IMU for accurate rotation.
+                        
+                        Args:
+                            direction: 'left' or 'right'
+                        """
+                        degrees = -TURN_90_DEGREES if direction == 'left' else TURN_90_DEGREES
+                        direction_name = "left" if direction == 'left' else "right"
+                        
+                        logger.info(f"Turning {direction_name} 90 degrees...")
+                        
+                        # Perform turn (path correction disabled to prevent overcompensation)
+                        robot.drive.turn_degrees(degrees)
+                        logger.info(f"  ✅ Turn complete!")
+                    
+                    # ============================================================
+                    # ODectection: MOVEMENT SEQUENCE WITH OBSTACLE AVOIDANCE
+                    # ============================================================
+                    logger.info("=" * 60)
+                    logger.info("ODectection: MOVEMENT SEQUENCE WITH OBSTACLE DETECTION")
+                    logger.info("=" * 60)
+                    logger.info("Movement sequence (repeat 4 times):")
+                    logger.info("  1. Move forward 2 feet, stop")
+                    logger.info("  2. Turn left 90 degrees, wait 5 seconds")
+                    logger.info("  3. Turn right 90 degrees")
+                    logger.info("  4. Move forward 2 feet, stop")
+                    logger.info("  5. Turn left 90 degrees, wait 5 seconds")
+                    logger.info("")
+                    logger.info("Obstacle detection:")
+                    logger.info(f"  - Distance sensor: {OBSTACLE_THRESHOLD_CM:.1f}cm (1/2 foot)")
+                    logger.info("  - IMU: For orientation tracking and path recovery")
+                    logger.info("  - Robot will go around obstacles and continue same distance/time")
+                    logger.info(f"  - If next stop is within {NEXT_STOP_THRESHOLD_CM:.1f}cm, will still go around and stop")
+                    logger.info(f"  - Forward speed: {DRIVE_SPEED_DPS} DPS (~{CM_PER_SECOND:.1f} cm/s)")
+                    logger.info("=" * 60)
+                    logger.info("")
+                    
+                    if distance_sensor is None:
+                        logger.error("❌ Distance sensor not available!")
+                        logger.error("  Cannot run without obstacle detection")
+                        raise Exception("Distance sensor not initialized")
+                    
+                    if imu is None:
+                        logger.warning("⚠️  IMU not available - path recovery may be less accurate")
+                    
+                    # Movement sequence: Repeat 4 times
+                    # Pattern per iteration:
+                    # 1. Move forward 2 feet, stop
+                    # 2. Turn left 90 degrees, wait 5 seconds
+                    # 3. Turn right 90 degrees
+                    # 4. Move forward 2 feet, stop
+                    # 5. Turn left 90 degrees, wait 5 seconds
+                    for sequence_num in range(4):
+                        logger.info("")
+                        logger.info("=" * 60)
+                        logger.info(f"SEQUENCE #{sequence_num + 1}/4")
+                        logger.info("=" * 60)
+                        
+                        # Step 1: Move forward 2 feet, stop
+                        logger.info("")
+                        logger.info("Step 1: Moving forward 2 feet...")
+                        drive_with_obstacle_avoidance(DISTANCE_2FT_CM, forward=True)
+                        robot.drive.stop()  # Explicit stop
+                        logger.info("✅ Step 1 complete!")
+                        
+                        # Step 2: Turn left 90 degrees, wait 5 seconds
+                        logger.info("")
+                        logger.info("Step 2: Turning left 90 degrees...")
+                        turn_90_degrees('left')
+                        logger.info("  Waiting 5 seconds in turned position...")
+                        time.sleep(5.0)
+                        logger.info("✅ Step 2 complete!")
+                        
+                        # Step 3: Turn right 90 degrees
+                        logger.info("")
+                        logger.info("Step 3: Turning right 90 degrees...")
+                        turn_90_degrees('right')
+                        logger.info("✅ Step 3 complete!")
+                        
+                        # Step 4: Move forward 2 feet, stop
+                        logger.info("")
+                        logger.info("Step 4: Moving forward 2 feet...")
+                        drive_with_obstacle_avoidance(DISTANCE_2FT_CM, forward=True)
+                        robot.drive.stop()  # Explicit stop
+                        logger.info("✅ Step 4 complete!")
+                        
+                        # Step 5: Turn left 90 degrees, wait 5 seconds
+                        logger.info("")
+                        logger.info("Step 5: Turning left 90 degrees...")
+                        turn_90_degrees('left')
+                        logger.info("  Waiting 5 seconds in turned position...")
+                        time.sleep(5.0)
+                        logger.info("✅ Step 5 complete!")
+                        
+                        logger.info("")
+                        logger.info(f"✅ Sequence #{sequence_num + 1}/4 complete!")
+                    
+                    # Ensure robot is stopped
+                    robot.drive.stop()
+
+                    logger.info("")
+                    logger.info("=" * 60)
+                    logger.info("✅ ODectection movement sequence complete!")
+                    logger.info("=" * 60)
+
+                except Exception as e:
+                    logger.error(f"Movement error: {e}")
+                    robot.drive.stop()
     
     except KeyboardInterrupt:
         logger.info("Shutting down...")
@@ -156,4 +685,3 @@ def main():
 
 if __name__ == "__main__":
     sys.exit(main())
-
