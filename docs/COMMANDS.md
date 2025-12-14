@@ -219,6 +219,42 @@ python3 tests/test_desk_polling.py --simulate
 
 > **Note:** When running on hardware, ensure the robot has clear space to rotate in place and that the camera has a clear view of each desk. The robot will turn approximately ±66° during the scan.
 
+#### Story 3.2: Collection Mission
+
+This executes the full paper collection workflow.
+
+```bash
+# Quick test - collect from 1 desk, no timer
+python3 scripts/run_collection_mission.py --limit-desks 1
+
+# Test with 2 desks
+python3 scripts/run_collection_mission.py --limit-desks 2
+
+# Full mission - all 4 desks, start immediately
+python3 scripts/run_collection_mission.py
+
+# Full mission with 10-minute countdown timer
+python3 scripts/run_collection_mission.py --timer 10
+```
+
+**What it does:**
+1. Optional countdown timer (e.g., 10 minutes for students to complete work)
+2. Navigates to each desk in sequence along the row
+3. At each desk:
+   - Turns left 90° to face the desk
+   - Waits for student to insert paper (press ENTER)
+   - Scans paper and saves with desk_id + timestamp
+   - Turns back to continue to next desk
+4. Shows collection statistics at end
+
+**Setup:**
+- Position robot in front of Desk 1, facing along the row (parallel to desks)
+- Same positioning as row traversal test
+
+**Files saved to:** `collected_papers/desk_N_YYYYMMDD_HHMMSS.txt`
+
+> **Note:** Robot uses hardcoded distances between desks (52cm, 238cm, 52cm). Does 180° turn after Desk 2 to reverse direction.
+
 ---
 
 ## 🚀 Quick Examples
