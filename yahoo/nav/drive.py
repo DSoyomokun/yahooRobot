@@ -143,16 +143,10 @@ class Drive:
         if self.gpg:
             try:
                 # Use blocking=False to avoid hanging, then wait with timeout
-                logger.info(f"[DRIVE] Calling gpg.drive_cm({distance_cm:.1f}, blocking=False)...")
-                self.gpg.drive_cm(distance_cm, blocking=False)
+                logger.info(f"[DRIVE] Calling gpg.drive_cm({distance_cm:.1f}, blocking=True)...")
+                self.gpg.drive_cm(distance_cm, blocking=True)
 
-                # Calculate timeout based on distance and speed
-                # Wheel diameter ~6.6cm, so circumference ~20.7cm
-                # At 200 DPS (default), wheel rotates ~0.55 rev/sec = ~11.4 cm/sec
-                # Add 2 second buffer for safety
-                estimated_speed_cm_per_sec = 11.4  # Conservative estimate
-                timeout = abs(distance_cm) / estimated_speed_cm_per_sec + 2.0
-                time.sleep(timeout)
+              
 
                 logger.info(f"[DRIVE] ✅ drive_cm() completed - moved {abs(distance_cm):.1f}cm")
             except Exception as e:
