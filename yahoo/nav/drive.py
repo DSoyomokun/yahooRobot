@@ -181,6 +181,76 @@ class Drive:
                 traceback.print_exc()
                 raise
 
+    def turn_right_timed(self, duration_seconds: float, speed: Optional[float] = None):
+        """
+        Turn right for a specific duration (time-based, no encoders).
+        Use this when encoder-based turning doesn't work.
+
+        Args:
+            duration_seconds: How long to turn (e.g., 1.5 for ~90 degrees)
+            speed: Turn speed in DPS (default: 150)
+        """
+        speed = speed or self.TURN_SPEED
+
+        if self.simulate:
+            logger.info(f"[DRIVE] Turn RIGHT for {duration_seconds:.2f}s at {speed} DPS")
+            return
+
+        if self.gpg:
+            try:
+                logger.info(f"[DRIVE] Turning RIGHT for {duration_seconds:.2f}s at {speed} DPS...")
+
+                # Set motors to turn right (left forward, right backward)
+                self.gpg.set_motor_dps(self.gpg.MOTOR_LEFT, speed)
+                self.gpg.set_motor_dps(self.gpg.MOTOR_RIGHT, -speed)
+
+                # Wait for specified duration
+                time.sleep(duration_seconds)
+
+                # Stop motors
+                self.gpg.stop()
+
+                logger.info(f"[DRIVE] ✅ Turn RIGHT complete ({duration_seconds:.2f}s)")
+            except Exception as e:
+                logger.error(f"[DRIVE] ❌ Failed to turn right: {e}")
+                self.gpg.stop()  # Ensure motors stop on error
+                raise
+
+    def turn_left_timed(self, duration_seconds: float, speed: Optional[float] = None):
+        """
+        Turn left for a specific duration (time-based, no encoders).
+        Use this when encoder-based turning doesn't work.
+
+        Args:
+            duration_seconds: How long to turn (e.g., 1.5 for ~90 degrees)
+            speed: Turn speed in DPS (default: 150)
+        """
+        speed = speed or self.TURN_SPEED
+
+        if self.simulate:
+            logger.info(f"[DRIVE] Turn LEFT for {duration_seconds:.2f}s at {speed} DPS")
+            return
+
+        if self.gpg:
+            try:
+                logger.info(f"[DRIVE] Turning LEFT for {duration_seconds:.2f}s at {speed} DPS...")
+
+                # Set motors to turn left (left backward, right forward)
+                self.gpg.set_motor_dps(self.gpg.MOTOR_LEFT, -speed)
+                self.gpg.set_motor_dps(self.gpg.MOTOR_RIGHT, speed)
+
+                # Wait for specified duration
+                time.sleep(duration_seconds)
+
+                # Stop motors
+                self.gpg.stop()
+
+                logger.info(f"[DRIVE] ✅ Turn LEFT complete ({duration_seconds:.2f}s)")
+            except Exception as e:
+                logger.error(f"[DRIVE] ❌ Failed to turn left: {e}")
+                self.gpg.stop()  # Ensure motors stop on error
+                raise
+
     def get_motor_status(self) -> dict:
         """
         Get current motor encoder positions and status.
