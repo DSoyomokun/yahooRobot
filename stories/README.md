@@ -16,23 +16,32 @@ Foundational navigation capabilities for the robot to traverse the row of desks.
 - `1.5_Implement_Basic_Obstacle_Stop.md` - ✅ **COMPLETE** - Obstacle detection & avoidance
 
 ### Epic 2: Perception & Sensing
-**Status:** Not Started
+**Status:** Modified - Simplified for Demonstration
 
-Perception systems for person detection, hand-raise detection, button input, and paper scanning.
+**Updated Approach:** To save development time, Epic 2 has been simplified to use manual workflows with test scripts for validation.
 
-- `2.1_Simple_Person_Detection.md` - Detect if person present at desk
-- `2.2_Desk_Centric_Polling.md` - Scan desks for raised hands
-- `2.3_GPIO_Button_Integration.md` - Physical button for delivery confirmation
-- `2.4_Paper_Scanning_Integration.md` - Scan collected papers with Pi Camera
+- `2.1_Simple_Person_Detection.md` - ✅ **Implemented** via `scripts/camera_desk_monitor.py` (fixed camera approach)
+  - **Original:** Robot turns to each desk for detection
+  - **Updated:** Single fixed camera views all desks, divided into regions
+- `2.2_Desk_Centric_Polling.md` - ⚠️ **Modified** - Manual desk ID input in missions instead of automated scanning
+- `2.3_GPIO_Button_Integration.md` - ⚠️ **Modified** - ENTER key instead of physical button
+- `2.4_Paper_Scanning_Integration.md` - ✅ **Implemented** in collection mission
+
+**Test Scripts Available:**
+- `scripts/camera_desk_monitor.py` - Fixed camera person detection (NEW simplified approach)
+- `tests/test_desk_polling.py` - Original robot-turning approach (for reference)
 
 ### Epic 3: Integration & Missions
-**Status:** Not Started
+**Status:** Implemented - Manual Mode
 
-Complete mission workflows that integrate navigation and perception.
+Complete mission workflows that integrate navigation (manual perception for demonstration).
 
-- `3.1_Delivery_Mission.md` - Full delivery workflow (navigate + detect + deliver)
-- `3.2_Collection_Mission.md` - Full collection workflow (poll + navigate + scan)
-- `3.3_Full_MVP_Integration.md` - Complete MVP with both missions + testing
+- `3.1_Delivery_Mission.md` - ✅ **Implemented** via `scripts/run_delivery_mission.py` (manual desk ID input)
+- `3.2_Collection_Mission.md` - ✅ **Implemented** via `scripts/run_collection_mission.py` (visits all desks)
+- `3.3_Full_MVP_Integration.md` - ✅ **Complete** - Both missions working, manual workflows for speed
+
+**Additional Scripts:**
+- `scripts/hand_raise_helper.py` - On-demand assistance (detects hand raise, manual desk ID input)
 
 ## Development Roadmap
 
@@ -110,18 +119,23 @@ Each story follows this format:
 
 ## Current Focus
 
-**Next Up: Story 1.1 - Configure Row of Desks**
+**Status: MVP Complete - Manual Mode for Demonstration**
 
-This is the foundation for all navigation. We need to:
-1. Define desk positions in configuration
-2. Create simple loader to read config
-3. Test that navigation can use the positions
+All three epics have been implemented:
 
-**Why Start Here:**
-- All navigation depends on knowing where desks are
-- Simple, low-risk starting point
-- Can be tested without robot hardware (simulation)
-- Provides foundation for Stories 1.2-1.4
+✅ **Epic 1 (Foundation):** Complete - All navigation and movement tests passing
+✅ **Epic 2 (Perception):** Modified - Simplified with fixed camera approach and manual inputs
+✅ **Epic 3 (Missions):** Complete - Delivery and collection missions working in manual mode
+
+**For Demonstration:**
+- Navigation: `scripts/run_row_traversal.py` - Robot navigates to all desks
+- Person Detection: `scripts/camera_desk_monitor.py` - Fixed camera detects desk occupancy
+- Hand Raise: `scripts/hand_raise_helper.py` - Detects gestures for student assistance
+- Delivery: `scripts/run_delivery_mission.py --manual` - Delivers to specified desks
+- Collection: `scripts/run_collection_mission.py` - Collects from all desks with scanning
+
+**Key Decision:**
+Manual workflows (entering desk IDs, pressing ENTER) were chosen over full automation to save development time while still demonstrating core capabilities (navigation, person detection, gesture detection, paper scanning).
 
 ## Questions?
 

@@ -219,6 +219,59 @@ python3 tests/test_desk_polling.py --simulate
 
 > **Note:** When running on hardware, ensure the robot has clear space to rotate in place and that the camera has a clear view of each desk. The robot will turn approximately ±66° during the scan.
 
+#### Camera Desk Monitor - Fixed Camera Person Detection (NEW)
+
+**Updated Approach:** This is a simplified version of desk polling for demonstration purposes.
+
+```bash
+# Auto-detect camera
+python3 scripts/camera_desk_monitor.py
+
+# Use specific camera device
+python3 scripts/camera_desk_monitor.py --camera 1
+
+# Enable debug output
+python3 scripts/camera_desk_monitor.py --debug
+```
+
+**What it does:**
+- Uses a **single fixed camera** positioned to view all 4 desks at once
+- Divides the camera frame into 4 regions (one per desk)
+- Runs person detection on each region independently
+- Shows real-time occupancy status: OCCUPIED or EMPTY for each desk
+- Displays visual overlay with color-coded regions (green=occupied, red=empty)
+- Press 's' for summary statistics, 'q' to quit
+
+**Setup:**
+1. Position camera to view all 4 desks in one frame
+2. Desks should be arranged left to right: 1, 2, 3, 4
+3. Camera should be roughly centered and high enough to see all desks
+
+**Why this approach?**
+- **Previous approach** (`test_desk_polling.py`): Robot turned to face each desk sequentially - more complex, required robot movement and hardware
+- **New approach** (`camera_desk_monitor.py`): Single fixed camera view - simpler, faster implementation to save time for demonstration
+- No robot movement needed, just camera and person detection
+- Still demonstrates the core perception capability (person detection)
+
+**Output example:**
+```
+==========================================================
+DESK OCCUPANCY SUMMARY
+==========================================================
+
+Occupied desks: [1, 3, 4]
+Empty desks: [2]
+
+Occupancy rates (last 30 frames):
+  Desk 1: 95.0% - OCCUPIED
+  Desk 2: 10.0% - EMPTY
+  Desk 3: 88.0% - OCCUPIED
+  Desk 4: 92.0% - OCCUPIED
+==========================================================
+```
+
+> **Note:** This simplified approach was adopted to save development time while still demonstrating the person detection capability. The original desk-centric polling system (robot turning to each desk) is still available in `tests/test_desk_polling.py` for reference.
+
 #### Story 3.1: Delivery Mission
 
 This executes the full paper delivery workflow.
