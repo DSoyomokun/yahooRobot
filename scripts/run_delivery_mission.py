@@ -185,12 +185,12 @@ class DeliveryMission:
 
         input("\n⚠️  Press ENTER to start delivery traversal...")
 
-        # HARDCODED DISTANCES (same as row traversal)
+        # HARDCODED DISTANCES (REDUCED FOR TESTING)
         distances = {
-            1: 0,    # Already at Desk 1
-            2: 104,  # Desk 1 → Desk 2
-            3: 238,  # Desk 2 → Desk 3 (across gap)
-            4: 104   # Desk 3 → Desk 4
+            1: 0,   # Already at Desk 1
+            2: 50,  # Desk 1 → Desk 2 (shortened for testing)
+            3: 50,  # Desk 2 → Desk 3 (shortened for testing)
+            4: 50   # Desk 3 → Desk 4 (shortened for testing)
         }
 
         # Track current position
