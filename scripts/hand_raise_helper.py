@@ -58,11 +58,12 @@ logger = logging.getLogger(__name__)
 class HandRaiseHelper:
     """Monitors for hand raises and navigates to help students."""
 
-    def __init__(self, robot, config):
+    def __init__(self, robot, config, simulate=False):
         self.robot = robot
         self.config = config
         self.desks = sorted(config.desks, key=lambda d: d.id)
         self.gesture_detector = None
+        self.simulate = simulate
 
     def watch_for_hand_raise(self):
         """
@@ -71,6 +72,14 @@ class HandRaiseHelper:
         Returns:
             True if hand raise detected, False otherwise
         """
+        # SIMULATION MODE: Fake gesture detection
+        if self.simulate:
+            logger.info("\n👀 [SIMULATED] Watching for hand raise...")
+            logger.info("   (In real mode, this would use webcam)")
+            response = input("\n   Press ENTER to simulate hand raise detected: ")
+            logger.info(f"\n🙋 [SIMULATED] HAND RAISE DETECTED!")
+            return True
+
         logger.info("\n👀 Watching for hand raise...")
         logger.info("   Raise your hand in front of webcam to test")
         logger.info("   Press Ctrl+C to stop watching\n")
@@ -217,13 +226,19 @@ class HandRaiseHelper:
 
         if distance_to_drive > 1.0:
             logger.info(f"\n🚗 Driving {distance_to_drive} cm to Desk {target_desk_id}...")
-            self.robot.drive.drive_cm(distance_to_drive)
+            if self.simulate:
+                logger.info(f"   [SIMULATED] robot.drive.drive_cm({distance_to_drive})")
+            else:
+                self.robot.drive.drive_cm(distance_to_drive)
             logger.info(f"✅ Arrived at Desk {target_desk_id}")
 
         # Turn left to face desk
         logger.info(f"\n↰  Turning LEFT 90° to face Desk {target_desk_id}...")
-        self.robot.drive.turn_degrees(-90)
-        time.sleep(0.5)
+        if self.simulate:
+            logger.info(f"   [SIMULATED] robot.drive.turn_degrees(-90)")
+        else:
+            self.robot.drive.turn_degrees(-90)
+            time.sleep(0.5)
 
         logger.info(f"\n🎯 AT DESK {target_desk_id} - Ready to assist student")
 
@@ -237,7 +252,11 @@ class HandRaiseHelper:
         """
         logger.info("=" * 60)
         logger.info("🙋 HAND RAISE HELPER")
+        if self.simulate:
+            logger.info("⚠️  SIMULATION MODE - No hardware required")
         logger.info("=" * 60)
+        logger.info(f"\n✋ PHASE: ON-DEMAND STUDENT ASSISTANCE (Hand Raise)")
+        logger.info(f"Goal: Help student who raises hand during work time")
         logger.info(f"\nMode: {'MANUAL' if manual else 'AUTOMATED'}")
         logger.info(f"Continuous: {'Yes' if continuous else 'No (one-time)'}")
 
@@ -323,6 +342,8 @@ How it works:
                        help='Manual desk confirmation (default)')
     parser.add_argument('--auto', action='store_true',
                        help='Automated desk detection (future)')
+    parser.add_argument('--simulate', action='store_true',
+                       help='Run in simulation mode (no hardware required)')
     parser.add_argument('--continuous', action='store_true',
                        help='Keep watching for multiple requests')
     parser.add_argument('--debug', action='store_true',
@@ -336,14 +357,14 @@ How it works:
 
     logger.info("Initializing robot...")
     try:
-        with Robot(simulate=False) as robot:
-            logger.info(f"✅ Robot initialized")
+        with Robot(simulate=args.simulate) as robot:
+            logger.info(f"✅ Robot initialized (simulate={args.simulate})")
             logger.info(f"   Battery: {robot.get_battery_voltage():.2f}V")
 
             config = load_row_config()
             logger.info(f"✅ Config loaded: {len(config.desks)} desks")
 
-            helper = HandRaiseHelper(robot, config)
+            helper = HandRaiseHelper(robot, config, simulate=args.simulate)
             helper.run(manual=manual_mode, continuous=args.continuous)
 
     except KeyboardInterrupt:

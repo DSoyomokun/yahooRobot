@@ -277,11 +277,17 @@ Occupancy rates (last 30 frames):
 This executes the full paper delivery workflow.
 
 ```bash
-# Manual mode (default) - enter occupied desks at prompt
+# ON ROBOT: Manual mode (default) - enter occupied desks at prompt
 python3 scripts/run_delivery_mission.py --manual
 
-# Debug: Only visit first 2 occupied desks
+# ON ROBOT: Debug - Only visit first 2 occupied desks
 python3 scripts/run_delivery_mission.py --manual --limit-desks 2
+
+# ON MAC: Simulation mode - test workflow without hardware
+python3 scripts/run_delivery_mission.py --simulate
+
+# ON MAC: Simulation with limited desks
+python3 scripts/run_delivery_mission.py --simulate --limit-desks 2
 
 # Future: Automated mode with person detection
 python3 scripts/run_delivery_mission.py --auto
@@ -303,8 +309,19 @@ python3 scripts/run_delivery_mission.py --auto
 - Easy to switch to `--auto` mode later
 - See code comments for future integration steps
 
-**Setup:**
+**Setup (Hardware Mode):**
 - Position robot in front of Desk 1, facing along the row
+
+**Simulation Mode:**
+- Run on your Mac to test workflow logic
+- No robot hardware needed
+- Logs show `[SIMULATED] robot.drive.drive_cm(104)` instead of actual movement
+- All user prompts still work (enter occupied desks, press ENTER at desks)
+- Perfect for testing logic before deploying to robot
+
+**Phase Logging:**
+- Shows "📦 PHASE: PAPER DELIVERY (Passing Out)"
+- Clear indication of what the mission is doing
 
 **Future automated mode:**
 - Uses `DeskPoller.scan_for_persons()` to identify occupied desks
@@ -316,17 +333,23 @@ python3 scripts/run_delivery_mission.py --auto
 This executes the full paper collection workflow.
 
 ```bash
-# Quick test - collect from 1 desk, no timer
+# ON ROBOT: Quick test - collect from 1 desk, no timer
 python3 scripts/run_collection_mission.py --limit-desks 1
 
-# Test with 2 desks
+# ON ROBOT: Test with 2 desks
 python3 scripts/run_collection_mission.py --limit-desks 2
 
-# Full mission - all 4 desks, start immediately
+# ON ROBOT: Full mission - all 4 desks, start immediately
 python3 scripts/run_collection_mission.py
 
-# Full mission with 10-minute countdown timer
+# ON ROBOT: Full mission with 10-minute countdown timer
 python3 scripts/run_collection_mission.py --timer 10
+
+# ON MAC: Simulation mode - test workflow without hardware
+python3 scripts/run_collection_mission.py --simulate
+
+# ON MAC: Simulation with timer
+python3 scripts/run_collection_mission.py --simulate --timer 5
 ```
 
 **What it does:**
@@ -339,9 +362,21 @@ python3 scripts/run_collection_mission.py --timer 10
    - Turns back to continue to next desk
 4. Shows collection statistics at end
 
-**Setup:**
+**Setup (Hardware Mode):**
 - Position robot in front of Desk 1, facing along the row (parallel to desks)
 - Same positioning as row traversal test
+
+**Simulation Mode:**
+- Run on your Mac to test collection workflow
+- No robot hardware needed
+- Logs show `[SIMULATED] robot.drive.turn_degrees(-90)` instead of actual turns
+- All prompts still work (timer confirmation, ENTER at each desk)
+- Tests end-to-end workflow logic
+
+**Phase Logging:**
+- Shows "📥 PHASE: PAPER COLLECTION"
+- Timer countdown visible
+- Clear desk-by-desk progress
 
 **Files saved to:** `collected_papers/desk_N_YYYYMMDD_HHMMSS.txt`
 
@@ -352,11 +387,17 @@ python3 scripts/run_collection_mission.py --timer 10
 Watches for hand raise gestures and navigates to specific desk for student help.
 
 ```bash
-# One-time assistance - help one student and exit
+# ON ROBOT: One-time assistance - help one student and exit
 python3 scripts/hand_raise_helper.py
 
-# Continuous mode - keep helping multiple students
+# ON ROBOT: Continuous mode - keep helping multiple students
 python3 scripts/hand_raise_helper.py --continuous
+
+# ON MAC: Simulation mode - test workflow without hardware/webcam
+python3 scripts/hand_raise_helper.py --simulate
+
+# ON MAC: Simulation in continuous mode
+python3 scripts/hand_raise_helper.py --simulate --continuous
 
 # Future: Automated desk identification
 python3 scripts/hand_raise_helper.py --auto
@@ -375,13 +416,24 @@ python3 scripts/hand_raise_helper.py --auto
 - Robot goes to help that specific student
 - Not part of main delivery/collection workflow
 
+**Simulation Mode:**
+- Run on your Mac without webcam or hardware
+- Fakes gesture detection (press ENTER to simulate hand raise)
+- All navigation logged as `[SIMULATED]`
+- Tests the assistance workflow end-to-end
+- No OpenCV/webcam required
+
+**Phase Logging:**
+- Shows "✋ PHASE: ON-DEMAND STUDENT ASSISTANCE (Hand Raise)"
+- Clear indication this is the help workflow
+
 **Why manual desk confirmation?**
 - Webcam detects gesture but not desk location
 - Fast implementation for deadline
 - Gesture detection code already exists
 - Future: Use `DeskPoller.scan_for_raised_hands()` for automated desk ID
 
-**Setup:**
+**Setup (Hardware Mode):**
 - Position robot in front of Desk 1, facing along the row
 - Webcam should have view of students
 

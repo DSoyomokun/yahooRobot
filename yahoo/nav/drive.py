@@ -170,17 +170,16 @@ class Drive:
 
         if self.gpg:
             try:
-                # Use blocking=False to avoid hanging, then wait with timeout
-                self.gpg.turn_degrees(degrees, blocking=False)
+                # Use blocking=True (blocking=False doesn't work with new chassis encoders)
+                logger.info(f"[DRIVE] Turning {degrees:.1f}° {'right' if degrees > 0 else 'left'} at {self.TURN_SPEED} DPS...")
+                self.gpg.turn_degrees(degrees, blocking=True)
 
-                # Calculate timeout based on angle (assume ~90 deg/sec turn rate)
-                # Add 2 second buffer for safety
-                timeout = abs(degrees) / 90.0 + 2.0
-                time.sleep(timeout)
-
-                logger.debug(f"Turned {degrees:.1f}°")
+                logger.info(f"[DRIVE] ✅ Turn complete - turned {degrees:.1f}° {'right' if degrees > 0 else 'left'}")
             except Exception as e:
-                logger.error(f"Failed to turn: {e}")
+                logger.error(f"[DRIVE] ❌ Failed to turn: {e}")
+                import traceback
+                traceback.print_exc()
+                raise
 
     def get_motor_status(self) -> dict:
         """

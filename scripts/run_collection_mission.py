@@ -36,11 +36,12 @@ logger = logging.getLogger(__name__)
 class CollectionMission:
     """Handles paper collection from all desks."""
 
-    def __init__(self, robot, config):
+    def __init__(self, robot, config, simulate=False):
         self.robot = robot
         self.config = config
         self.desks = sorted(config.desks, key=lambda d: d.id)
         self.collected_count = 0
+        self.simulate = simulate
         self.scan_dir = Path(__file__).parent.parent / "collected_papers"
         self.scan_dir.mkdir(parents=True, exist_ok=True)
 
@@ -135,7 +136,11 @@ class CollectionMission:
         """
         logger.info("=" * 60)
         logger.info("📦 COLLECTION MISSION - Story 3.2")
+        if self.simulate:
+            logger.info("⚠️  SIMULATION MODE - No hardware required")
         logger.info("=" * 60)
+        logger.info(f"\n📥 PHASE: PAPER COLLECTION")
+        logger.info(f"Goal: Collect papers from all desks")
 
         # Countdown phase
         if countdown_minutes > 0:
@@ -170,13 +175,19 @@ class CollectionMission:
 
             if distance_to_drive > 1.0:
                 logger.info(f"\n🚗 Driving {distance_to_drive} cm to Desk {desk.id}...")
-                self.robot.drive.drive_cm(distance_to_drive)
+                if self.simulate:
+                    logger.info(f"   [SIMULATED] robot.drive.drive_cm({distance_to_drive})")
+                else:
+                    self.robot.drive.drive_cm(distance_to_drive)
                 logger.info(f"✅ Arrived at Desk {desk.id}")
 
             # Turn left to face desk
             logger.info(f"\n↰  Turning LEFT 90° to face Desk {desk.id}...")
-            self.robot.drive.turn_degrees(-90)
-            time.sleep(0.5)
+            if self.simulate:
+                logger.info(f"   [SIMULATED] robot.drive.turn_degrees(-90)")
+            else:
+                self.robot.drive.turn_degrees(-90)
+                time.sleep(0.5)
 
             # Collect paper
             self.collect_at_desk(desk)
@@ -184,8 +195,11 @@ class CollectionMission:
             # Turn back (unless last desk)
             if i < len(desks_to_visit) - 1:
                 logger.info(f"\n↱  Turning RIGHT 90° back to straight...")
-                self.robot.drive.turn_degrees(90)
-                time.sleep(0.5)
+                if self.simulate:
+                    logger.info(f"   [SIMULATED] robot.drive.turn_degrees(90)")
+                else:
+                    self.robot.drive.turn_degrees(90)
+                    time.sleep(0.5)
 
             # 180° turn at Desk 2 (same as row traversal)
             if desk.id == 2:
@@ -193,8 +207,11 @@ class CollectionMission:
                 logger.info(f"🔄 180° TURN AT DESK 2")
                 logger.info(f"{'='*60}")
                 logger.info(f"\n↻  Turning 180° to reverse direction...")
-                self.robot.drive.turn_degrees(180)
-                time.sleep(0.5)
+                if self.simulate:
+                    logger.info(f"   [SIMULATED] robot.drive.turn_degrees(180)")
+                else:
+                    self.robot.drive.turn_degrees(180)
+                    time.sleep(0.5)
 
         # Mission complete
         logger.info("\n" + "=" * 60)
@@ -233,6 +250,8 @@ Setup:
     )
     parser.add_argument('--timer', type=int, default=0, metavar='MINUTES',
                        help='Minutes to wait before collection (0 = start now)')
+    parser.add_argument('--simulate', action='store_true',
+                       help='Run in simulation mode (no hardware required)')
     parser.add_argument('--limit-desks', type=int, metavar='N',
                        help='Only visit first N desks (for testing)')
     parser.add_argument('--debug', action='store_true',
@@ -244,14 +263,14 @@ Setup:
 
     logger.info("Initializing robot...")
     try:
-        with Robot(simulate=False) as robot:
-            logger.info(f"✅ Robot initialized")
+        with Robot(simulate=args.simulate) as robot:
+            logger.info(f"✅ Robot initialized (simulate={args.simulate})")
             logger.info(f"   Battery: {robot.get_battery_voltage():.2f}V")
 
             config = load_row_config()
             logger.info(f"✅ Config loaded: {len(config.desks)} desks")
 
-            mission = CollectionMission(robot, config)
+            mission = CollectionMission(robot, config, simulate=args.simulate)
             mission.run(
                 limit_desks=args.limit_desks,
                 countdown_minutes=args.timer
