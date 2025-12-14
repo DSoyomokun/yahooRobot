@@ -60,7 +60,22 @@ def main():
     # Initialize robot
     # Set simulate=True for testing without hardware
     simulate = False  # Change to True for testing
+    
+    print(f"\n🤖 Initializing robot (simulate={simulate})...")
     robot = Robot(simulate=simulate)
+    
+    # Verify robot is ready
+    if robot.simulate:
+        print("⚠️  WARNING: Running in SIMULATION MODE - robot will not actually move!")
+        print("   To run with hardware, make sure simulate=False in the script")
+    else:
+        if robot.gpg:
+            print("✅ Robot hardware initialized (GoPiGo3)")
+        else:
+            print("⚠️  WARNING: GoPiGo3 hardware not detected - falling back to simulation")
+            print("   Check robot is powered on and connected")
+    
+    print()
     
     try:
         # Create row mission

@@ -133,21 +133,28 @@ class Drive:
             speed: Speed in DPS (default: 200)
         """
         speed = speed or self.DEFAULT_SPEED
+        direction = "forward" if distance_cm > 0 else "backward"
 
         if self.simulate:
-            direction = "forward" if distance_cm > 0 else "backward"
-            logger.info(f"[DRIVE] Drive {abs(distance_cm):.1f}cm {direction} at {speed} DPS")
+            logger.info(f"[DRIVE] ⚠️  SIMULATION MODE: Would drive {abs(distance_cm):.1f}cm {direction} at {speed} DPS")
+            logger.info(f"[DRIVE] ⚠️  Robot will NOT actually move in simulation mode")
             return
 
         if self.gpg:
             try:
+                logger.info(f"[DRIVE] Driving {abs(distance_cm):.1f}cm {direction} at {speed} DPS...")
                 if distance_cm > 0:
                     self.gpg.drive_cm(distance_cm, blocking=True)
                 else:
                     self.gpg.drive_cm(distance_cm, blocking=True)
-                logger.debug(f"Drove {distance_cm:.1f}cm")
+                logger.info(f"[DRIVE] ✅ Completed driving {abs(distance_cm):.1f}cm {direction}")
             except Exception as e:
-                logger.error(f"Failed to drive distance: {e}")
+                logger.error(f"[DRIVE] ❌ Failed to drive distance: {e}")
+                import traceback
+                traceback.print_exc()
+        else:
+            logger.error(f"[DRIVE] ❌ GoPiGo3 hardware (gpg) not available - cannot drive")
+            logger.error(f"[DRIVE] Check robot initialization and hardware connection")
 
     def turn_degrees(self, degrees: float, speed: Optional[float] = None):
         """
@@ -157,17 +164,25 @@ class Drive:
             degrees: Angle to turn (positive = right, negative = left)
             speed: Turn speed (not used by GoPiGo3 turn_degrees, kept for compatibility)
         """
+        direction = "right" if degrees > 0 else "left"
+        
         if self.simulate:
-            direction = "right" if degrees > 0 else "left"
-            logger.info(f"[DRIVE] Turn {abs(degrees):.1f}° {direction}")
+            logger.info(f"[DRIVE] ⚠️  SIMULATION MODE: Would turn {abs(degrees):.1f}° {direction}")
+            logger.info(f"[DRIVE] ⚠️  Robot will NOT actually turn in simulation mode")
             return
 
         if self.gpg:
             try:
+                logger.info(f"[DRIVE] Turning {abs(degrees):.1f}° {direction}...")
                 self.gpg.turn_degrees(degrees, blocking=True)
-                logger.debug(f"Turned {degrees:.1f}°")
+                logger.info(f"[DRIVE] ✅ Completed turning {abs(degrees):.1f}° {direction}")
             except Exception as e:
-                logger.error(f"Failed to turn: {e}")
+                logger.error(f"[DRIVE] ❌ Failed to turn: {e}")
+                import traceback
+                traceback.print_exc()
+        else:
+            logger.error(f"[DRIVE] ❌ GoPiGo3 hardware (gpg) not available - cannot turn")
+            logger.error(f"[DRIVE] Check robot initialization and hardware connection")
 
     def get_motor_status(self) -> dict:
         """

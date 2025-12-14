@@ -215,7 +215,11 @@ class ObstacleNavigator:
         
         if not check_obstacles or not self.distance_sensor:
             # No obstacle detection - use simple drive
+            logger.info(f"[OBSTACLE-NAV] Driving {distance_cm:.1f}cm (no obstacle detection)")
+            if self.robot.simulate:
+                logger.info(f"[OBSTACLE-NAV] ⚠️  SIMULATION MODE - Robot will not actually move")
             self.robot.drive.drive_cm(distance_cm)
+            logger.info(f"[OBSTACLE-NAV] Drive command completed")
             return True
         
         # Calculate movement parameters
