@@ -51,14 +51,14 @@ class RowTraversal:
         logger.info("=" * 60)
 
         # HARDCODED DISTANCES (measured from real setup)
-        # Desk 1 → Desk 2: 52 cm
-        # Desk 2 → Desk 3: 20 cm + 89 cm (gap) + 10 cm = 119 cm
-        # Desk 3 → Desk 4: 52 cm
+        # DOUBLED - original measurements came up short
+        # Original: Desk 1→2: 52cm, Desk 2→3: 119cm, Desk 3→4: 52cm
+        # Doubled values:
         distances = {
             1: 0,    # Already at Desk 1
-            2: 52,   # Desk 1 → Desk 2
-            3: 119,  # Desk 2 → Desk 3 (20 + 89 gap + 10)
-            4: 52    # Desk 3 → Desk 4
+            2: 104,  # Desk 1 → Desk 2 (52 * 2)
+            3: 238,  # Desk 2 → Desk 3 (119 * 2)
+            4: 104   # Desk 3 → Desk 4 (52 * 2)
         }
 
         # Limit desks if in debug mode
