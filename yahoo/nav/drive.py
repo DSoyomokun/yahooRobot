@@ -143,6 +143,7 @@ class Drive:
         if self.gpg:
             try:
                 # Use blocking=False to avoid hanging, then wait with timeout
+                logger.info(f"[DRIVE] Calling gpg.drive_cm({distance_cm:.1f}, blocking=False)...")
                 self.gpg.drive_cm(distance_cm, blocking=False)
 
                 # Calculate timeout based on distance and speed
@@ -153,9 +154,12 @@ class Drive:
                 timeout = abs(distance_cm) / estimated_speed_cm_per_sec + 2.0
                 time.sleep(timeout)
 
-                logger.debug(f"Drove {distance_cm:.1f}cm")
+                logger.info(f"[DRIVE] ✅ drive_cm() completed - moved {abs(distance_cm):.1f}cm")
             except Exception as e:
-                logger.error(f"Failed to drive distance: {e}")
+                logger.error(f"[DRIVE] ❌ Failed to drive distance: {e}")
+                import traceback
+                traceback.print_exc()
+                raise  # Re-raise so caller knows it failed
 
     def turn_degrees(self, degrees: float, speed: Optional[float] = None):
         """
