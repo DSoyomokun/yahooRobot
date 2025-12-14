@@ -1,7 +1,8 @@
 {
   "permissions": {
     "allow": [
-      "Bash(timeout 10 python3:*)"
+      "Bash(timeout 10 python3:*)",
+      "Bash(python3:*)"
     ]
   }
 }
