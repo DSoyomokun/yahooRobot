@@ -257,6 +257,71 @@ class Scanner:
     def get_scan_count(self) -> int:
         """Get total number of scans captured."""
         return self.scan_count
+    
+    def wait_for_scan(self, timeout: float = 30.0) -> Optional[str]:
+        """
+        Block until scan completes or timeout.
+        
+        This method starts the scanner (if not already running), then blocks
+        until a scan is successfully captured or the timeout expires.
+        
+        Args:
+            timeout: Maximum time to wait in seconds (default: 30.0)
+        
+        Returns:
+            file_path (str) if scan completed successfully, None if timeout
+        """
+        # Store the scan path when callback is triggered
+        scan_path = [None]  # Use list to allow modification in nested function
+        
+        # Create callback to capture scan path
+        def on_complete(path: str):
+            scan_path[0] = path
+        
+        # Set callback (preserve existing if set)
+        original_callback = self.completion_callback
+        self.completion_callback = on_complete
+        
+        # Start scanner if not already running
+        if not self._running:
+            if not self.start():
+                # Failed to start
+                self.completion_callback = original_callback
+                return None
+        
+        # Wait for scan completion or timeout
+        start_time = time.time()
+        initial_scan_count = self.scan_count
+        
+        try:
+            while self.is_running():
+                # Check if a new scan was captured
+                if self.scan_count > initial_scan_count:
+                    # Scan was captured, wait for SUCCESS state
+                    if self.get_state() == ScannerState.SUCCESS:
+                        # Restore original callback
+                        self.completion_callback = original_callback
+                        return scan_path[0]
+                
+                # Check timeout
+                if time.time() - start_time > timeout:
+                    print(f"[SCANNER] Timeout waiting for scan ({timeout}s)")
+                    self.stop()
+                    # Restore original callback
+                    self.completion_callback = original_callback
+                    return None
+                
+                time.sleep(0.1)
+            
+            # Scanner stopped without completing scan
+            self.completion_callback = original_callback
+            return None
+            
+        except Exception as e:
+            print(f"[SCANNER] Error in wait_for_scan: {e}")
+            self.stop()
+            self.completion_callback = original_callback
+            return None
 
 
 # Backward compatibility: main() function for direct script execution

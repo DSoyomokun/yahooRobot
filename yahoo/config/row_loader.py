@@ -153,6 +153,50 @@ class RowConfig:
     def get_navigation_settings(self) -> dict:
         """Get navigation speed and distance settings."""
         return self.config.get('navigation', {})
+    
+    def get_stop_points_config(self) -> dict:
+        """
+        Get stop points configuration.
+        
+        Returns:
+            Dictionary with stop_points configuration or empty dict if not found
+        """
+        return self.config.get('stop_points', {})
+    
+    def get_stop_spacing(self) -> float:
+        """
+        Get stop point spacing in inches.
+        
+        Returns:
+            Spacing in inches (default: 60.0)
+        """
+        stop_config = self.get_stop_points_config()
+        return stop_config.get('spacing_inches', 60.0)
+    
+    def get_stop_count(self) -> int:
+        """
+        Get number of stop points.
+        
+        Returns:
+            Number of stops (default: 5)
+        """
+        stop_config = self.get_stop_points_config()
+        return stop_config.get('count', 5)
+    
+    def get_desk_for_stop(self, stop_index: int) -> int:
+        """
+        Get desk ID for a stop index.
+        
+        Args:
+            stop_index: Stop index (0-4)
+        
+        Returns:
+            Desk ID (1-4) or None if stop 4 (buffer)
+        """
+        stop_config = self.get_stop_points_config()
+        desk_mapping = stop_config.get('desk_mapping', {})
+        desk_id = desk_mapping.get(str(stop_index))
+        return desk_id if desk_id is not None else None
 
     def print_summary(self):
         """Print a summary of the configuration."""

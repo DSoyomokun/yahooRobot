@@ -73,5 +73,19 @@
     "approach_speed_dps": 100,
     "stop_distance_cm": 10.0,
     "_note": "Speed and distance settings for navigation"
+  },
+
+  "stop_points": {
+    "_description": "Fixed 5-stop point path planning system for row navigation",
+    "_note": "Stops are evenly spaced at 60 inches apart. Stops 0-3 correspond to desks 1-4. Stop 4 is buffer for 180° turn.",
+    "spacing_inches": 60,
+    "count": 5,
+    "desk_mapping": {
+      "0": 1,
+      "1": 2,
+      "2": 3,
+      "3": 4,
+      "4": null
+    }
   }
 }
