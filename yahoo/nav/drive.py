@@ -146,8 +146,6 @@ class Drive:
                 logger.info(f"[DRIVE] Calling gpg.drive_cm({distance_cm:.1f}, blocking=True)...")
                 self.gpg.drive_cm(distance_cm, blocking=True)
 
-              
-
                 logger.info(f"[DRIVE] ✅ drive_cm() completed - moved {abs(distance_cm):.1f}cm")
             except Exception as e:
                 logger.error(f"[DRIVE] ❌ Failed to drive distance: {e}")
