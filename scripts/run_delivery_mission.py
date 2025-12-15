@@ -253,9 +253,9 @@ class DeliveryMission:
         logger.info("=" * 60)
         input(f"\n⚠️  Press ENTER for final action at Desk {desks_to_visit[-1].id}...")
 
-        # Turn 215° (using left turn since right turns don't work)
-        logger.info(f"\n↻  Turning LEFT 215°...")
-        self.turn_with_imu_verification(-215, "left 215°")
+        # Turn 230° (using left turn since right turns don't work)
+        logger.info(f"\n↻  Turning LEFT 230°...")
+        self.turn_with_imu_verification(-230, "left 230°")
 
         # Drive forward 100cm
         logger.info(f"\n🚗 Driving forward 100 cm...")
@@ -265,9 +265,9 @@ class DeliveryMission:
             self.robot.drive.drive_cm(100)  # Positive = forward
         logger.info(f"✅ Drove forward 100 cm")
         
-        # Turn 215° again
-        logger.info(f"\n↻  Turning LEFT 215° again...")
-        self.turn_with_imu_verification(-215, "left 215°")
+        # Turn 230° again
+        logger.info(f"\n↻  Turning LEFT 230° again...")
+        self.turn_with_imu_verification(-230, "left 230°")
         logger.info(f"✅ Final turn complete")
 
         logger.info("\n" + "=" * 60)
