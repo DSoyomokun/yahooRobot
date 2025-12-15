@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
 """
-Delivery Mission - Story 3.1 (Combined)
+Delivery Mission
 
-Delivers papers to specified desks using the traversal pattern.
+Delivers papers to specified desks.
 
-- Prompts user to enter which desks are EMPTY.
-- Navigates to all OTHER desks (the occupied ones).
+- Prompts user to enter which desks are OCCUPIED.
+- Navigates to ONLY those desks.
 - At each occupied desk, it turns left, waits for user confirmation, and turns right.
-- Skips the specified empty desks to save time.
+- Skips empty desks.
 """
 
 import sys
@@ -41,38 +41,41 @@ class DeliveryMission:
 
     def get_desks_to_visit(self):
         """
-        Asks user for EMPTY desks and returns a list of desks to visit.
+        Asks user for OCCUPIED desks and returns a list of desk IDs to visit.
         """
         logger.info("=" * 60)
         logger.info("📍 DESK OCCUPANCY CHECK")
         logger.info("=" * 60)
-        logger.info("\nEnter which desks are EMPTY and should be skipped.")
-        logger.info("Example: 2 (skips Desk 2, visits 1, 3, and 4)")
-        logger.info("Press ENTER if no desks are empty.")
+        logger.info("\nEnter which desks have students and should be visited.")
+        logger.info("Example: 1,2,4 (visits Desks 1, 2, and 4)")
+        logger.info("Press ENTER if all desks are occupied.")
 
         while True:
-            response = input("\nEnter EMPTY desks to skip (comma-separated, e.g., 2,4): ").strip()
+            response = input("\nEnter occupied desks (comma-separated, e.g., 1,2,4): ").strip()
             
-            empty_ids = []
-            if response:
+            # Default to all desks if input is empty
+            if not response:
+                occupied_ids = [d.id for d in self.desks]
+            else:
                 try:
-                    empty_ids = [int(x.strip()) for x in response.split(',')]
+                    occupied_ids = [int(x.strip()) for x in response.split(',')]
                 except ValueError:
-                    logger.warning("Invalid format. Please use comma-separated numbers (e.g., 2,4).")
+                    logger.warning("Invalid format. Please use comma-separated numbers (e.g., 1,2,4).")
                     continue
 
             all_desk_ids = [d.id for d in self.desks]
-            invalid_ids = [d_id for d_id in empty_ids if d_id not in all_desk_ids]
+            invalid_ids = [d_id for d_id in occupied_ids if d_id not in all_desk_ids]
 
             if invalid_ids:
                 logger.warning(f"Invalid desk IDs: {invalid_ids}. Valid IDs are: {all_desk_ids}")
                 continue
 
-            # Calculate the desks to visit
-            occupied_ids = [d_id for d_id in all_desk_ids if d_id not in empty_ids]
+            total_desks = len(all_desk_ids)
+            skipped_desks = total_desks - len(occupied_ids)
             
-            logger.info(f"\n✅ Empty desks to skip: {empty_ids or 'None'}")
-            logger.info(f"✅ Desks to visit: {occupied_ids}")
+            logger.info(f"\n✅ Occupied desks to visit: {occupied_ids}")
+            logger.info(f"   Will deliver to {len(occupied_ids)} desk(s)")
+            logger.info(f"   Skipping {skipped_desks} empty desk(s)")
             return sorted(occupied_ids)
 
     def run(self):
@@ -90,7 +93,12 @@ class DeliveryMission:
 
         desks_to_visit = [d for d in self.desks if d.id in occupied_desk_ids]
 
-        distances = {1: 0, 2: 104, 3: 238, 4: 104}
+        # Distances between adjacent desks
+        distances = {
+            2: 104,  # From 1 to 2
+            3: 238,  # From 2 to 3
+            4: 104   # From 3 to 4
+        }
 
         logger.info(f"\n🤖 STARTING DELIVERY")
         logger.info(f"   Position: In front of Desk 1")
@@ -104,13 +112,14 @@ class DeliveryMission:
             logger.info(f"VISITING DESK {desk.id} (#{i+1}/{len(desks_to_visit)})")
             logger.info(f"{'='*60}")
 
+            # Calculate distance to drive from current position
             distance_to_drive = 0
             if desk.id > current_desk_pos:
+                # Sum the segments between the current desk and the target desk
                 distance_to_drive = sum(distances.get(j, 0) for j in range(current_desk_pos + 1, desk.id + 1))
 
-
-            if distance_to_drive > 1.0:
-                logger.info(f"\n📏 Driving from {current_desk_pos} to {desk.id}")
+            if distance_to_drive > 0:
+                logger.info(f"\n📏 Driving from Desk {current_desk_pos} to {desk.id}")
                 logger.info(f"🚗 Driving {distance_to_drive} cm...")
                 self.robot.drive.drive_cm(distance_to_drive)
                 logger.info(f"✅ Arrived at Desk {desk.id} position")
@@ -119,6 +128,7 @@ class DeliveryMission:
 
             current_desk_pos = desk.id
 
+            # Turn to face desk and wait for user confirmation
             logger.info(f"\n↰  Turning LEFT 90° to face Desk {desk.id}...")
             self.robot.drive.turn_degrees(-90)
             time.sleep(0.5)
@@ -127,18 +137,20 @@ class DeliveryMission:
             input(f"   📄 Press ENTER when paper is collected from Desk {desk.id}...")
             
             self.delivered_count += 1
+            logger.info(f"   ✅ Paper collected.")
 
+            # Turn back to the aisle if it's not the last desk
             if i < len(desks_to_visit) - 1:
                 logger.info(f"\n↱  Turning RIGHT 90° back to straight...")
                 self.robot.drive.turn_degrees(90)
                 time.sleep(0.5)
-                logger.info(f"   Ready to drive to next desk")
+                logger.info(f"   Ready to drive to next desk.")
 
         logger.info("\n" + "=" * 60)
         logger.info("✅ DELIVERY MISSION COMPLETE!")
         logger.info("=" * 60)
         logger.info(f"\n📊 STATISTICS:")
-        logger.info(f"   Desks visited: {self.delivered_count}")
+        logger.info(f"   Papers delivered: {self.delivered_count}")
         logger.info(f"   Final position: At Desk {desks_to_visit[-1].id if desks_to_visit else 'N/A'}")
 
 
