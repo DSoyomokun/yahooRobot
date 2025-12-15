@@ -50,7 +50,7 @@ from yahoo.sense.gesture import GestureDetector
 # Setup logging
 logging.basicConfig(
     level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+    format='%(message)s'  # Clean format - just the message
 )
 logger = logging.getLogger(__name__)
 
@@ -201,7 +201,7 @@ class HandRaiseHelper:
 
     def navigate_to_desk(self, target_desk_id):
         """
-        Navigate from current position to target desk.
+        Navigate from waiting area to target desk.
 
         Args:
             target_desk_id: Desk ID to navigate to (1-4)
@@ -210,29 +210,46 @@ class HandRaiseHelper:
         logger.info(f"NAVIGATING TO DESK {target_desk_id}")
         logger.info(f"{'='*60}")
 
-        # HARDCODED DISTANCES (TESTING: 25cm between all desks for this room)
-        distances = {
-            1: 0,   # From start position
-            2: 25,  # Desk 1 → Desk 2 (25 cm for testing)
-            3: 25,  # Desk 2 → Desk 3 (25 cm for testing)
-            4: 25   # Desk 3 → Desk 4 (25 cm for testing)
-        }
+        # Navigate from waiting area to Desk 1
+        logger.info(f"\n🚗 Leaving waiting area...")
+        logger.info(f"   Turning LEFT 230° toward Desk 1...")
+        if self.simulate:
+            logger.info(f"   [SIMULATED] robot.drive.turn_degrees(-230)")
+        else:
+            self.robot.drive.turn_degrees(-230)
 
-        # Simple approach: assume starting at Desk 1, navigate to target
-        # FUTURE: Track actual position and calculate optimal path
+        logger.info(f"   Driving 100 cm to Desk 1...")
+        if self.simulate:
+            logger.info(f"   [SIMULATED] robot.drive.drive_cm(100)")
+        else:
+            self.robot.drive.drive_cm(100)
 
-        current_pos = 1  # Assume starting at Desk 1
-        distance_to_drive = sum(distances[i] for i in range(current_pos + 1, target_desk_id + 1))
+        logger.info(f"   Turning LEFT 230° to face along row...")
+        if self.simulate:
+            logger.info(f"   [SIMULATED] robot.drive.turn_degrees(-230)")
+        else:
+            self.robot.drive.turn_degrees(-230)
 
-        if distance_to_drive > 1.0:
-            logger.info(f"\n🚗 Driving {distance_to_drive} cm to Desk {target_desk_id}...")
-            if self.simulate:
-                logger.info(f"   [SIMULATED] robot.drive.drive_cm({distance_to_drive})")
-            else:
-                self.robot.drive.drive_cm(distance_to_drive)
-            logger.info(f"✅ Arrived at Desk {target_desk_id}")
+        logger.info(f"✅ At Desk 1")
 
-        # Turn left to face desk
+        # Drive from Desk 1 to target desk if needed
+        if target_desk_id > 1:
+            distances = {
+                2: 25,  # Desk 1 → Desk 2
+                3: 50,  # Desk 1 → Desk 3
+                4: 75   # Desk 1 → Desk 4
+            }
+            distance = distances.get(target_desk_id, 0)
+
+            if distance > 0:
+                logger.info(f"\n🚗 Driving {distance} cm to Desk {target_desk_id}...")
+                if self.simulate:
+                    logger.info(f"   [SIMULATED] robot.drive.drive_cm({distance})")
+                else:
+                    self.robot.drive.drive_cm(distance)
+                logger.info(f"✅ Arrived at Desk {target_desk_id}")
+
+        # Turn LEFT to face desk
         logger.info(f"\n↰  Turning LEFT 90° to face Desk {target_desk_id}...")
         if self.simulate:
             logger.info(f"   [SIMULATED] robot.drive.turn_degrees(-90)")
@@ -261,7 +278,7 @@ class HandRaiseHelper:
         logger.info(f"Continuous: {'Yes' if continuous else 'No (one-time)'}")
 
         logger.info(f"\n🤖 READY FOR ASSISTANCE")
-        logger.info(f"   Position: In front of Desk 1")
+        logger.info(f"   Position: Waiting Area")
         logger.info(f"   Waiting for hand raise gesture...")
 
         while True:
@@ -289,13 +306,33 @@ class HandRaiseHelper:
 
                 logger.info("\n✅ Assistance complete")
 
+                # Return to waiting area
+                logger.info("\n" + "=" * 60)
+                logger.info("⏸️  RETURNING TO WAITING AREA")
+                logger.info("=" * 60)
+
+                logger.info(f"\n↻  Turning LEFT 230°...")
+                if self.simulate:
+                    logger.info(f"   [SIMULATED] robot.drive.turn_degrees(-230)")
+                else:
+                    self.robot.drive.turn_degrees(-230)
+
+                logger.info(f"\n🚗 Driving back to waiting area (100 cm)...")
+                if self.simulate:
+                    logger.info(f"   [SIMULATED] robot.drive.drive_cm(100)")
+                else:
+                    self.robot.drive.drive_cm(100)
+
+                logger.info(f"\n↻  Turning LEFT 230° to face desks...")
+                if self.simulate:
+                    logger.info(f"   [SIMULATED] robot.drive.turn_degrees(-230)")
+                else:
+                    self.robot.drive.turn_degrees(-230)
+
+                logger.info(f"✅ Back at waiting area")
+
                 if continuous:
-                    # Return to start position
-                    response = input("\nReturn to start position? (y/n): ").strip().lower()
-                    if response == 'y':
-                        logger.info("Returning to Desk 1...")
-                        # TODO: Navigate back to Desk 1
-                        logger.info("(Manual return for now - drive robot back to start)")
+                    logger.info("\n🔄 Ready for next assistance request...")
                 else:
                     break
             else:

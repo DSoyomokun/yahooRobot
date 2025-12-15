@@ -483,7 +483,11 @@ result = detector.detect(frame)  # Same API everywhere
 
 **Demo:**
 ```bash
+# On Robot (hardware mode)
 python3 scripts/run_row_traversal.py
+
+# On Mac (simulation mode)
+python3 scripts/run_row_traversal.py --simulate
 ```
 
 **Output:**
@@ -537,45 +541,60 @@ Occupancy rates (last 30 frames):
 - Temporal smoothing (prevents false positives)
 - Detects raised hands using MediaPipe Pose
 - Manual desk ID input (simulates desk identification)
-- Navigation to specified desk
+- Navigation from waiting area to specified desk
+- Returns to waiting area after assistance
 
 **Demo:**
 ```bash
+# On Robot (hardware mode)
 python3 scripts/hand_raise_helper.py
+
+# On Mac (simulation mode)
+python3 scripts/hand_raise_helper.py --simulate
 ```
 
 **Workflow:**
-1. Watches webcam for raised hand
-2. When detected: "Which desk raised hand? (1-4):"
-3. User enters desk number
-4. Robot navigates to that desk
-5. Provides assistance
+1. Robot starts at waiting area
+2. Watches webcam for raised hand
+3. When detected: "Which desk raised hand? (1-4):"
+4. User enters desk number
+5. Robot navigates from waiting area to that desk
+6. Provides assistance
+7. Returns to waiting area
 
 ---
 
 #### 4. Delivery Mission ✅
-**Script:** `scripts/run_delivery_mission.py --manual`
+**Script:** `scripts/run_delivery_mission.py`
 
 **Capabilities:**
 - Manual input of occupied desk IDs
 - Navigates only to occupied desks (skips empty)
-- Stops at each desk, waits for confirmation
-- Turns 90° to face desk
+- Stops at each desk, prompts for confirmation (press ENTER)
+- Turns 90° to face desk (LEFT turns)
+- Moves to waiting area at completion
 - Comprehensive logging
 - Delivery statistics
 
 **Demo:**
 ```bash
-python3 scripts/run_delivery_mission.py --manual
+# On Robot (hardware mode)
+python3 scripts/run_delivery_mission.py
 # Input: 1,3,4
+
+# On Mac (simulation mode)
+python3 scripts/run_delivery_mission.py --simulate
 ```
 
 **Workflow:**
-1. Prompt: "Enter occupied desk IDs (e.g., 1,2,4):"
-2. Navigate to Desk 1 → turn left → deliver → wait for ENTER
-3. Navigate to Desk 3 → turn left → deliver → wait for ENTER
-4. Navigate to Desk 4 → turn left → deliver → wait for ENTER
-5. Show delivery summary
+1. Robot starts at Desk 1
+2. Prompt: "Enter occupied desk IDs (e.g., 1,2,4):"
+3. Navigate to Desk 1 → turn left 90° → deliver → press ENTER when paper taken
+4. Navigate to Desk 3 → turn left 90° → deliver → press ENTER when paper taken
+5. Navigate to Desk 4 → turn left 90° → deliver → press ENTER when paper taken
+6. Navigate to waiting area (between Desk 2 & 3, further back)
+7. "Waiting for test to end or hands raised..."
+8. Show delivery statistics
 
 **Output:**
 ```
@@ -583,7 +602,7 @@ Delivery Summary:
   Desks visited: 3
   Papers delivered: 3
   Empty desks skipped: 1
-  Duration: 3m 24s
+  Total distance traveled: 50 cm
 ```
 
 ---
@@ -600,7 +619,11 @@ Delivery Summary:
 
 **Demo:**
 ```bash
+# On Robot (hardware mode)
 python3 scripts/run_collection_mission.py --limit-desks 2
+
+# On Mac (simulation mode)
+python3 scripts/run_collection_mission.py --simulate --limit-desks 2
 ```
 
 **Workflow:**
@@ -680,7 +703,11 @@ python3 main.py
 **What it shows:** Robot can reliably navigate to predefined positions
 
 ```bash
+# On Robot
 python3 scripts/run_row_traversal.py
+
+# On Mac (simulation)
+python3 scripts/run_row_traversal.py --simulate
 ```
 
 **Expected behavior:**
@@ -712,16 +739,23 @@ python3 scripts/camera_desk_monitor.py
 ---
 
 ### Demo 3: Hand-Raise Interaction
-**What it shows:** Robot can detect student signals
+**What it shows:** Robot can detect student signals and assist
 
 ```bash
+# On Robot
 python3 scripts/hand_raise_helper.py
+
+# On Mac (simulation)
+python3 scripts/hand_raise_helper.py --simulate
 ```
 
 **Expected behavior:**
+- ✅ Robot starts at waiting area
 - ✅ Detects raised hand gesture
 - ✅ Prompts for desk number
-- ✅ Navigates to specified desk
+- ✅ Navigates from waiting area to specified desk
+- ✅ Provides assistance
+- ✅ Returns to waiting area
 - ✅ Can loop for multiple students
 
 **Key takeaway:** Student-robot interaction is functional
@@ -732,17 +766,24 @@ python3 scripts/hand_raise_helper.py
 **What it shows:** Complete paper distribution process
 
 ```bash
-python3 scripts/run_delivery_mission.py --manual
+# On Robot
+python3 scripts/run_delivery_mission.py
 # Input: 1,3,4
+
+# On Mac (simulation)
+python3 scripts/run_delivery_mission.py --simulate
 ```
 
 **Expected behavior:**
+- ✅ Starts at Desk 1
+- ✅ Prompts for occupied desk IDs
 - ✅ Skips Desk 2 (not in list)
 - ✅ Stops at Desks 1, 3, 4 only
-- ✅ Turns to face each desk
-- ✅ Waits for confirmation (simulates paper taken)
+- ✅ Turns LEFT 90° to face each desk
+- ✅ Prompts for confirmation (press ENTER when paper taken)
+- ✅ Navigates to waiting area at completion
+- ✅ "Waiting for test to end or hands raised..."
 - ✅ Logs all events
-- ✅ Returns to origin
 - ✅ Shows statistics
 
 **Key takeaway:** Full workflow is demo-ready
@@ -753,12 +794,17 @@ python3 scripts/run_delivery_mission.py --manual
 **What it shows:** Paper collection and scanning
 
 ```bash
+# On Robot
 python3 scripts/run_collection_mission.py --limit-desks 2
+
+# On Mac (simulation)
+python3 scripts/run_collection_mission.py --simulate --limit-desks 2
 ```
 
 **Expected behavior:**
 - ✅ Visits desks sequentially
-- ✅ Waits for paper insertion
+- ✅ Turns LEFT 90° to face each desk
+- ✅ Waits for paper insertion (press ENTER)
 - ✅ Scans paper with camera
 - ✅ Saves image with desk ID
 - ✅ Logs collection events
@@ -1206,25 +1252,39 @@ yahooRobot/
 
 **1-Minute Demo (Navigation):**
 ```bash
+# On Robot
 python3 scripts/run_row_traversal.py
+
+# On Mac (simulation)
+python3 scripts/run_row_traversal.py --simulate
 ```
 
 **3-Minute Demo (Perception):**
 ```bash
-# Terminal 1
+# Terminal 1 - Person Detection
 python3 scripts/camera_desk_monitor.py
 
-# Terminal 2
+# Terminal 2 - Hand Raise Helper
+# On Robot
 python3 scripts/hand_raise_helper.py
+
+# On Mac (simulation)
+python3 scripts/hand_raise_helper.py --simulate
 ```
 
 **5-Minute Demo (Full Workflow):**
 ```bash
 # Delivery
-python3 scripts/run_delivery_mission.py --manual --limit-desks 2
+# On Robot
+python3 scripts/run_delivery_mission.py --limit-desks 2
+# On Mac (simulation)
+python3 scripts/run_delivery_mission.py --simulate --limit-desks 2
 
 # Collection
+# On Robot
 python3 scripts/run_collection_mission.py --limit-desks 2
+# On Mac (simulation)
+python3 scripts/run_collection_mission.py --simulate --limit-desks 2
 ```
 
 ### Appendix C: Resources

@@ -24,7 +24,7 @@ from yahoo.config.row_loader import load_row_config
 # Setup logging
 logging.basicConfig(
     level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+    format='%(message)s'  # Clean format - just the message
 )
 logger = logging.getLogger(__name__)
 
@@ -223,11 +223,10 @@ class DeliveryMission:
             logger.info(f"\n↰  Turning LEFT 90° to face Desk {desk.id}...")
             self.turn_with_imu_verification(-90, "left")
 
-            # Wait 3 seconds
-            logger.info(f"\n⏱️  Waiting 3 seconds at Desk {desk.id}...")
-            time.sleep(3.0)
+            # Wait for student to take paper
+            input(f"\n✋ Press ENTER when student takes paper...")
 
-            # Turn LEFT 315° back to straight
+            # Turn LEFT 315° back to straight (equivalent to RIGHT 45°, but using LEFT for hardware compatibility)
             logger.info(f"\n↰  Turning LEFT 315° back to straight...")
             self.turn_with_imu_verification(-315, "left")
 
@@ -247,28 +246,25 @@ class DeliveryMission:
                     self.robot.drive.drive_cm(distance_to_next)
                 logger.info(f"✅ Arrived at Desk {next_desk.id} position")
 
-        # At last desk - final action
+        # Move to standby/waiting area (middle of Desk 2 & 3, further back)
         logger.info("\n" + "=" * 60)
-        logger.info("FINAL ACTION AT LAST DESK")
+        logger.info("⏸️  MOVING TO STANDBY POSITION")
         logger.info("=" * 60)
-        input(f"\n⚠️  Press ENTER for final action at Desk {desks_to_visit[-1].id}...")
 
-        # Turn 230° (using left turn since right turns don't work)
+        # Turn LEFT 230° to face toward waiting area
         logger.info(f"\n↻  Turning LEFT 230°...")
         self.turn_with_imu_verification(-230, "left 230°")
 
-        # Drive forward 100cm
-        logger.info(f"\n🚗 Driving forward 100 cm...")
+        # Drive forward 100cm to waiting area
+        logger.info(f"\n🚗 Driving to waiting area (100 cm)...")
         if self.simulate:
             logger.info(f"   [SIMULATED] robot.drive.drive_cm(100)")
         else:
-            self.robot.drive.drive_cm(100)  # Positive = forward
-        logger.info(f"✅ Drove forward 100 cm")
-        
-        # Turn 230° again
-        logger.info(f"\n↻  Turning LEFT 230° again...")
+            self.robot.drive.drive_cm(100)
+
+        # Turn LEFT 230° to face desks from waiting area
+        logger.info(f"\n↻  Turning LEFT 230° to face desks...")
         self.turn_with_imu_verification(-230, "left 230°")
-        logger.info(f"✅ Final turn complete")
 
         logger.info("\n" + "=" * 60)
         logger.info("✅ DELIVERY MISSION COMPLETE!")
@@ -277,8 +273,10 @@ class DeliveryMission:
         logger.info(f"   Total desks: {len(self.desks)}")
         logger.info(f"   Occupied desks: {len(occupied_desk_ids)}")
         logger.info(f"   Desks visited: {len(desks_to_visit)}")
-        logger.info(f"   Total forward distance: {total_forward_distance} cm")
-        logger.info(f"   Final forward movement: 100 cm")
+        logger.info(f"   Total distance traveled: {total_forward_distance} cm")
+
+        logger.info("\n⏸️  Waiting for test to end or hands raised...")
+        logger.info("   (Mission script will now exit)")
 
 
 def main():

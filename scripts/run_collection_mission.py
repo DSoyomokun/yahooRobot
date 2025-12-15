@@ -28,7 +28,7 @@ from yahoo.config.row_loader import load_row_config
 # Setup logging
 logging.basicConfig(
     level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+    format='%(message)s'  # Clean format - just the message
 )
 logger = logging.getLogger(__name__)
 
