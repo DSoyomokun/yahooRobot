@@ -173,19 +173,19 @@ robot.stop()
 - Motor manufacturing tolerances
 
 **Solution:**
-- **IMU integration:** Used gyroscope feedback for accurate turn angles
-- **Iterative tuning:** Multiple testing passes to calibrate turn parameters
-- **Distance-based movement:** Switched to encoder-based distance tracking
-- **Created comprehensive test suite:** `test_turns.py`, `test_linear_movement.py`
+- **Encoder-based turning:** Used GoPiGo3's built-in turn_degrees() with blocking=True
+- **Iterative testing:** Multiple testing passes with different chassis configurations
+- **Distance-based movement:** Used encoder-based distance tracking (drive_cm)
+- **Standardized distances:** Configured 25cm between desks for testing room
 
 **Final Approach:**
 ```python
-# IMU-feedback based turning (reliable)
-def turn_degrees(self, angle, speed=150):
-    target_heading = self.imu.get_heading() + angle
-    while abs(current_heading - target_heading) > 3:  # ±3° tolerance
-        # Adjust motors based on heading error
-        # ...
+# Encoder-based turning (working on current chassis)
+def turn_degrees(self, degrees: float):
+    """Turn by specific angle using GoPiGo3 encoders."""
+    if self.gpg:
+        self.gpg.turn_degrees(degrees, blocking=True)
+        logger.debug(f"Turned {degrees:.1f}°")
 ```
 
 **Result:** Achieved ±3° turn accuracy, reliable straight-line movement
@@ -575,8 +575,7 @@ python3 scripts/run_delivery_mission.py --manual
 2. Navigate to Desk 1 → turn left → deliver → wait for ENTER
 3. Navigate to Desk 3 → turn left → deliver → wait for ENTER
 4. Navigate to Desk 4 → turn left → deliver → wait for ENTER
-5. Return to origin
-6. Show delivery summary
+5. Show delivery summary
 
 **Output:**
 ```
@@ -625,15 +624,21 @@ Scanned papers saved to: collected_papers/
 ---
 
 #### 6. Obstacle Avoidance ✅
-**Integrated into all navigation scripts**
+**Script:** `main.py` (ODectection demonstration)
 
 **Capabilities:**
 - Continuous distance monitoring during movement
-- Immediate stop when obstacle detected (< 20cm)
-- LED feedback (red = obstacle detected)
-- Logs obstacle events
+- Automatic obstacle avoidance with path recovery
+- Goes around obstacles and continues to destination
+- IMU-based heading correction after avoidance
+- Logs obstacle events with distance
 
-**Implementation:** Runs in background during all movement commands
+**Demo:**
+```bash
+python3 main.py
+```
+
+**Note:** Obstacle avoidance is demonstrated in main.py. Mission scripts (delivery/collection) use simplified direct navigation for reliability
 
 ---
 

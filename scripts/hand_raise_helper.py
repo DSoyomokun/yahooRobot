@@ -210,12 +210,12 @@ class HandRaiseHelper:
         logger.info(f"NAVIGATING TO DESK {target_desk_id}")
         logger.info(f"{'='*60}")
 
-        # HARDCODED DISTANCES (same as other missions)
+        # HARDCODED DISTANCES (TESTING: 25cm between all desks for this room)
         distances = {
-            1: 0,    # From start position
-            2: 104,  # Desk 1 → Desk 2
-            3: 238,  # Desk 2 → Desk 3 (across gap)
-            4: 104   # Desk 3 → Desk 4
+            1: 0,   # From start position
+            2: 25,  # Desk 1 → Desk 2 (25 cm for testing)
+            3: 25,  # Desk 2 → Desk 3 (25 cm for testing)
+            4: 25   # Desk 3 → Desk 4 (25 cm for testing)
         }
 
         # Simple approach: assume starting at Desk 1, navigate to target

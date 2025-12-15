@@ -156,12 +156,12 @@ class CollectionMission:
 
         input("\n⚠️  Press ENTER to start collection traversal...")
 
-        # HARDCODED DISTANCES (same as row traversal)
+        # HARDCODED DISTANCES (TESTING: 25cm between all desks for this room)
         distances = {
-            1: 0,    # Already at Desk 1
-            2: 104,  # Desk 1 → Desk 2
-            3: 238,  # Desk 2 → Desk 3 (across gap)
-            4: 104   # Desk 3 → Desk 4
+            1: 0,   # Already at Desk 1
+            2: 25,  # Desk 1 → Desk 2 (25 cm for testing)
+            3: 25,  # Desk 2 → Desk 3 (25 cm for testing)
+            4: 25   # Desk 3 → Desk 4 (25 cm for testing)
         }
 
         # Visit each desk

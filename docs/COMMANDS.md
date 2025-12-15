@@ -303,6 +303,11 @@ python3 scripts/run_delivery_mission.py --auto
    - Turns back to continue
 4. Shows delivery statistics at end
 
+**Current Configuration:**
+- **Distances**: 25cm between all desks (configured for testing room)
+- **Turning**: Uses encoder-based turn_degrees() with blocking=True
+- **Navigation**: Proven working on current chassis
+
 **Why manual mode?**
 - Fast implementation for deadline
 - Person detection code exists but not integrated yet
@@ -315,7 +320,7 @@ python3 scripts/run_delivery_mission.py --auto
 **Simulation Mode:**
 - Run on your Mac to test workflow logic
 - No robot hardware needed
-- Logs show `[SIMULATED] robot.drive.drive_cm(104)` instead of actual movement
+- Logs show `[SIMULATED] robot.drive.drive_cm(25)` instead of actual movement
 - All user prompts still work (enter occupied desks, press ENTER at desks)
 - Perfect for testing logic before deploying to robot
 
@@ -378,9 +383,14 @@ python3 scripts/run_collection_mission.py --simulate --timer 5
 - Timer countdown visible
 - Clear desk-by-desk progress
 
+**Current Configuration:**
+- **Distances**: 25cm between all desks (configured for testing room)
+- **Turning**: Uses encoder-based turn_degrees() with blocking=True
+- **Navigation**: Same proven logic as delivery mission
+
 **Files saved to:** `collected_papers/desk_N_YYYYMMDD_HHMMSS.txt`
 
-> **Note:** Robot uses hardcoded distances between desks (104cm, 238cm, 104cm). Does 180° turn after Desk 2 to reverse direction.
+> **Note:** Robot does 180° turn after Desk 2 to reverse direction.
 
 #### Hand Raise Helper (On-Demand Assistance)
 
@@ -432,6 +442,11 @@ python3 scripts/hand_raise_helper.py --auto
 - Fast implementation for deadline
 - Gesture detection code already exists
 - Future: Use `DeskPoller.scan_for_raised_hands()` for automated desk ID
+
+**Current Configuration:**
+- **Distances**: 25cm between all desks (configured for testing room)
+- **Turning**: Uses encoder-based turn_degrees() with blocking=True
+- **Navigation**: Drives to specific desk based on user input
 
 **Setup (Hardware Mode):**
 - Position robot in front of Desk 1, facing along the row
