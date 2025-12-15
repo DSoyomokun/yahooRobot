@@ -15,7 +15,12 @@ mp_pose = mp.solutions.pose
 
 def open_mac_camera(device_index=0, width=640, height=480):
     """Open Mac camera using AVFoundation backend."""
+    # Try with AVFoundation first
     cap = cv2.VideoCapture(device_index, cv2.CAP_AVFOUNDATION)
+
+    if not cap.isOpened():
+        print(f"AVFoundation failed, trying default backend...")
+        cap = cv2.VideoCapture(device_index)
 
     if not cap.isOpened():
         print(f"Error: Could not open camera at index {device_index}.")
@@ -23,8 +28,23 @@ def open_mac_camera(device_index=0, width=640, height=480):
 
     cap.set(cv2.CAP_PROP_FRAME_WIDTH, width)
     cap.set(cv2.CAP_PROP_FRAME_HEIGHT, height)
+    cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)  # Reduce buffer to get fresher frames
 
-    time.sleep(0.5)
+    # macOS needs longer initialization time
+    print("Initializing camera...")
+    time.sleep(2.0)
+
+    # Warm-up: read and discard first few frames
+    print("Warming up camera...")
+    for i in range(10):
+        ret, _ = cap.read()
+        if ret:
+            print(f"✓ Camera ready after {i+1} warm-up frames")
+            time.sleep(0.5)  # Extra delay after successful warm-up
+            return cap
+        time.sleep(0.1)
+
+    print("Warning: Camera opened but couldn't read frames during warm-up")
     return cap
 
 def main():
@@ -32,8 +52,8 @@ def main():
     parser.add_argument(
         "--camera",
         type=int,
-        default=0,
-        help="Camera device index (default: 0 for built-in, try 1 for external)",
+        default=1,
+        help="Camera device index (default: 1 for external/continuity, try 0 for built-in)",
     )
     parser.add_argument(
         "--debug",
@@ -41,6 +61,15 @@ def main():
         help="Print raw debug info for thresholds & tuning.",
     )
     args = parser.parse_args()
+
+    # Initialize gesture detector FIRST (before camera) to avoid conflicts
+    print("Initializing MediaPipe gesture detector...")
+    detector = GestureDetector(
+        det_conf=0.7,
+        track_conf=0.7,
+        raise_frames_required=8,
+    )
+    print("✓ Gesture detector ready")
 
     # Try specified camera index first, then try alternatives
     cap = None
@@ -57,13 +86,6 @@ def main():
         print("✗ Error: Could not open any camera. Make sure a camera is connected.")
         return
 
-    # Initialize gesture detector
-    detector = GestureDetector(
-    det_conf=0.7,
-    track_conf=0.7,
-    raise_frames_required=8,
-)
-
     print("\n[INFO] Gesture Detection Running")
     print("  - Press 'q' to quit")
     print("  - Raise your hand to test detection")
@@ -72,6 +94,7 @@ def main():
 
     frame_fail_count = 0
     last_gesture = "NONE"
+    success_count = 0
 
     while True:
         ret, frame = cap.read()
@@ -79,12 +102,15 @@ def main():
             frame_fail_count += 1
             if frame_fail_count == 1:
                 print("[WARN] Failed to read frame from camera. Retrying...")
-            if frame_fail_count > 10:
+            if frame_fail_count > 30:  # Increased from 10 to 30
                 print("[ERROR] Failed to read frames after multiple attempts.")
+                print(f"       Successfully read {success_count} frames before failure.")
                 break
-            time.sleep(0.1)
+            time.sleep(0.05)  # Reduced from 0.1 to 0.05 for faster recovery
             continue
+
         frame_fail_count = 0
+        success_count += 1
 
         # Detect gesture
         gesture, pose_landmarks = detector.detect(frame)
