@@ -143,38 +143,34 @@ class DeliveryMission:
 
     def get_desks_to_visit(self):
         """
-        Asks user for EMPTY desks and returns a list of desks to visit.
+        Asks user for OCCUPIED desks and returns a list of desks to visit.
         """
         logger.info("=" * 60)
         logger.info("📍 DESK OCCUPANCY CHECK")
         logger.info("=" * 60)
-        logger.info("\nEnter which desks are EMPTY and should be skipped.")
-        logger.info("Example: 2 (skips Desk 2, visits 1, 3, and 4)")
-        logger.info("Press ENTER if no desks are empty.")
+        logger.info("\nEnter which desks are OCCUPIED (where students are present).")
+        logger.info("Example: 1,3,4 (visits Desks 1, 3, and 4)")
+        logger.info("Press ENTER if no desks are occupied (mission will be aborted).")
 
         while True:
-            response = input("\nEnter EMPTY desks to skip (comma-separated, e.g., 2,4): ").strip()
+            response = input("\nEnter OCCUPIED desks to visit (comma-separated, e.g., 1,3,4): ").strip()
 
-            empty_ids = []
+            occupied_ids = []
             if response:
                 try:
-                    empty_ids = [int(x.strip()) for x in response.split(',')]
+                    occupied_ids = [int(x.strip()) for x in response.split(',')]
                 except ValueError:
-                    logger.warning("Invalid format. Please use comma-separated numbers (e.g., 2,4).")
+                    logger.warning("Invalid format. Please use comma-separated numbers (e.g., 1,3,4).")
                     continue
 
             all_desk_ids = [d.id for d in self.desks]
-            invalid_ids = [d_id for d_id in empty_ids if d_id not in all_desk_ids]
+            invalid_ids = [d_id for d_id in occupied_ids if d_id not in all_desk_ids]
 
             if invalid_ids:
                 logger.warning(f"Invalid desk IDs: {invalid_ids}. Valid IDs are: {all_desk_ids}")
                 continue
 
-            # Calculate the desks to visit
-            occupied_ids = [d_id for d_id in all_desk_ids if d_id not in empty_ids]
-
-            logger.info(f"\n✅ Empty desks to skip: {empty_ids or 'None'}")
-            logger.info(f"✅ Desks to visit: {occupied_ids}")
+            logger.info(f"\n✅ Desks to visit (occupied): {sorted(occupied_ids)}")
             return sorted(occupied_ids)
 
     def run(self):
