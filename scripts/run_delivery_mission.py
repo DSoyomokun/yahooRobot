@@ -227,9 +227,9 @@ class DeliveryMission:
             logger.info(f"\n⏱️  Waiting 3 seconds at Desk {desk.id}...")
             time.sleep(3.0)
 
-            # Turn LEFT 345° back to straight
-            logger.info(f"\n↰  Turning LEFT 345° back to straight...")
-            self.turn_with_imu_verification(-345, "left")
+            # Turn LEFT 315° back to straight
+            logger.info(f"\n↰  Turning LEFT 315° back to straight...")
+            self.turn_with_imu_verification(-315, "left")
 
             # If not last desk, drive forward to next desk
             if i < len(desks_to_visit) - 1:
