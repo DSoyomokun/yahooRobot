@@ -103,7 +103,7 @@ class DeliveryMission:
     
     def turn_with_imu_verification(self, degrees, direction_name="turn"):
         """
-        Turn using encoder-based method with IMU verification and auto-correction.
+        Turn using encoder-based method with IMU verification (no auto-correction).
         
         Args:
             degrees: Degrees to turn (positive = right, negative = left)
@@ -123,7 +123,7 @@ class DeliveryMission:
             self.robot.drive.turn_degrees(degrees)
             time.sleep(0.3)  # Brief pause for IMU to stabilize
             
-            # Verify with IMU and correct if needed
+            # Verify with IMU (log only, no correction to avoid overcompensation)
             if initial_heading is not None:
                 final_heading = self.get_heading()
                 if final_heading is not None:
@@ -131,28 +131,7 @@ class DeliveryMission:
                     error = (expected_heading - final_heading) % 360
                     if error > 180:
                         error -= 360
-                    
-                    logger.info(f"  📊 Turn verified: {final_heading:.1f}° (expected: {expected_heading:.1f}°, error: {error:.1f}°)")
-                    
-                    # Auto-correct if error is significant (more than 2 degrees)
-                    if abs(error) > 2.0:
-                        correction_degrees = -error  # Negative error means we need to turn more
-                        logger.info(f"  🔧 Correcting turn by {correction_degrees:.1f}° to reach target...")
-                        self.robot.drive.turn_degrees(correction_degrees)
-                        time.sleep(0.3)  # Brief pause for IMU to stabilize
-                        
-                        # Verify correction
-                        corrected_heading = self.get_heading()
-                        if corrected_heading is not None:
-                            corrected_error = (expected_heading - corrected_heading) % 360
-                            if corrected_error > 180:
-                                corrected_error -= 360
-                            logger.info(f"  ✅ Turn corrected: {corrected_heading:.1f}° (expected: {expected_heading:.1f}°, error: {corrected_error:.1f}°)")
-                    else:
-                        logger.info(f"  ✅ Turn accurate (error < 2°)")
-            else:
-                # No IMU available, just do the turn
-                logger.debug(f"  Turn completed (no IMU verification available)")
+                    logger.info(f"  ✅ Turn verified: {final_heading:.1f}° (expected: {expected_heading:.1f}°, error: {error:.1f}°)")
         except Exception as e:
             logger.error(f"  ❌ Turn failed: {e}")
             # Fallback to timed turn if encoder fails
