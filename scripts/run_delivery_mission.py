@@ -134,16 +134,6 @@ class DeliveryMission:
                 time.sleep(0.5)
                 logger.info(f"   Ready to drive to next desk")
 
-            if desk.id == 2 and i < len(desks_to_visit) - 1:
-                next_desk = desks_to_visit[i+1]
-                if next_desk.id > 2:
-                    logger.info(f"\n{'='*60}")
-                    logger.info(f"🔄 180° TURN AT DESK 2")
-                    logger.info(f"\n↻  Turning 180° to reverse direction...")
-                    self.robot.drive.turn_degrees(180)
-                    time.sleep(0.5)
-                    logger.info(f"✅ 180° turn complete")
-
         logger.info("\n" + "=" * 60)
         logger.info("✅ DELIVERY MISSION COMPLETE!")
         logger.info("=" * 60)
