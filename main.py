@@ -418,9 +418,9 @@ def main():
                         logger.info("  → Step 3: Turning left 90 degrees...")
                         robot.drive.turn_degrees(-TURN_90_DEGREES)
                         
-                        # Step 4: Move forward parallel to original path (0.50 feet)
-                        AVOIDANCE_PARALLEL_DISTANCE = 0.50 * FEET_TO_CM  # 15.24 cm
-                        logger.info("  → Step 4: Moving forward 0.50 feet parallel to path...")
+                        # Step 4: Move forward parallel to original path (1.0 feet)
+                        AVOIDANCE_PARALLEL_DISTANCE = 1.0 * FEET_TO_CM  # 30.48 cm
+                        logger.info("  → Step 4: Moving forward 1.0 feet parallel to path...")
                         robot.drive.forward(AVOIDANCE_SPEED_DPS)
                         time.sleep(AVOIDANCE_PARALLEL_DISTANCE / AVOIDANCE_CM_PER_SECOND)
                         robot.drive.stop()
