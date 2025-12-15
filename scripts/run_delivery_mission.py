@@ -38,41 +38,139 @@ class DeliveryMission:
         self.desks = sorted(config.desks, key=lambda d: d.id)
         self.delivered_count = 0
         self.simulate = simulate
+        self.imu = None
+        
+        # Initialize IMU if available
+        if not simulate and robot.gpg:
+            self._init_imu()
+    
+    def _init_imu(self):
+        """Initialize IMU sensor for turn verification."""
+        logger.info("Attempting to initialize IMU sensor...")
+        
+        # Method 1: Try di_sensors library
+        try:
+            from di_sensors.inertial_measurement_unit import InertialMeasurementUnit
+            logger.info("  Trying di_sensors library...")
+            for bus_name in ["GPG3_AD1", "GPG3_AD2", "RPI_1"]:
+                try:
+                    self.imu = InertialMeasurementUnit(bus=bus_name)
+                    test_read = self.imu.read_euler()
+                    logger.info(f"✅ IMU initialized via di_sensors on bus: {bus_name}")
+                    return
+                except Exception:
+                    continue
+        except ImportError:
+            logger.debug("  di_sensors library not available")
+        except Exception as e:
+            logger.debug(f"  di_sensors method failed: {e}")
+        
+        # Method 2: Try easygopigo3 init_imu()
+        if self.imu is None:
+            try:
+                if hasattr(self.robot.gpg, 'init_imu'):
+                    self.imu = self.robot.gpg.init_imu()
+                    logger.info("✅ IMU initialized via init_imu()")
+                    return
+            except Exception:
+                pass
+        
+        # Method 3: Try direct access
+        if self.imu is None:
+            try:
+                if hasattr(self.robot.gpg, 'imu'):
+                    self.imu = self.robot.gpg.imu
+                    logger.info("✅ IMU accessed via gpg.imu")
+                    return
+            except Exception:
+                pass
+        
+        if self.imu is None:
+            logger.warning("⚠️  IMU not available - turns will use encoder-based method only")
+    
+    def get_heading(self):
+        """Get current heading from IMU if available."""
+        if self.imu is not None:
+            try:
+                euler = self.imu.read_euler()
+                if isinstance(euler, (list, tuple)) and len(euler) >= 3:
+                    return float(euler[2])  # Yaw angle
+                elif isinstance(euler, dict):
+                    return float(euler.get('yaw', euler.get('heading', euler.get('z', 0))))
+            except Exception as e:
+                logger.debug(f"IMU read error: {e}")
+        return None
+    
+    def turn_with_imu_verification(self, degrees, direction_name="turn"):
+        """
+        Turn using encoder-based method with IMU verification (no auto-correction).
+        
+        Args:
+            degrees: Degrees to turn (positive = right, negative = left)
+            direction_name: Description for logging
+        """
+        if self.simulate:
+            logger.info(f"   [SIMULATED] robot.drive.turn_degrees({degrees})")
+            return
+        
+        # Get initial heading if IMU available
+        initial_heading = self.get_heading()
+        if initial_heading is not None:
+            logger.debug(f"  Initial heading: {initial_heading:.1f}°")
+        
+        # Perform encoder-based turn
+        try:
+            self.robot.drive.turn_degrees(degrees)
+            time.sleep(0.3)  # Brief pause for IMU to stabilize
+            
+            # Verify with IMU (log only, no correction to avoid overcompensation)
+            if initial_heading is not None:
+                final_heading = self.get_heading()
+                if final_heading is not None:
+                    expected_heading = (initial_heading + degrees) % 360
+                    error = (expected_heading - final_heading) % 360
+                    if error > 180:
+                        error -= 360
+                    logger.info(f"  ✅ Turn verified: {final_heading:.1f}° (expected: {expected_heading:.1f}°, error: {error:.1f}°)")
+        except Exception as e:
+            logger.error(f"  ❌ Turn failed: {e}")
+            # Fallback to timed turn if encoder fails
+            logger.warning(f"  Falling back to timed turn...")
+            if degrees < 0:
+                self.robot.drive.turn_left_timed(abs(degrees) / 90.0 * 1.5)
+            else:
+                self.robot.drive.turn_right_timed(abs(degrees) / 90.0 * 1.5)
 
     def get_desks_to_visit(self):
         """
-        Asks user for EMPTY desks and returns a list of desks to visit.
+        Asks user for OCCUPIED desks and returns a list of desks to visit.
         """
         logger.info("=" * 60)
         logger.info("📍 DESK OCCUPANCY CHECK")
         logger.info("=" * 60)
-        logger.info("\nEnter which desks are EMPTY and should be skipped.")
-        logger.info("Example: 2 (skips Desk 2, visits 1, 3, and 4)")
-        logger.info("Press ENTER if no desks are empty.")
+        logger.info("\nEnter which desks are OCCUPIED (where students are present).")
+        logger.info("Example: 1,3,4 (visits Desks 1, 3, and 4)")
+        logger.info("Press ENTER if no desks are occupied (mission will be aborted).")
 
         while True:
-            response = input("\nEnter EMPTY desks to skip (comma-separated, e.g., 2,4): ").strip()
+            response = input("\nEnter OCCUPIED desks to visit (comma-separated, e.g., 1,3,4): ").strip()
 
-            empty_ids = []
+            occupied_ids = []
             if response:
                 try:
-                    empty_ids = [int(x.strip()) for x in response.split(',')]
+                    occupied_ids = [int(x.strip()) for x in response.split(',')]
                 except ValueError:
-                    logger.warning("Invalid format. Please use comma-separated numbers (e.g., 2,4).")
+                    logger.warning("Invalid format. Please use comma-separated numbers (e.g., 1,3,4).")
                     continue
 
             all_desk_ids = [d.id for d in self.desks]
-            invalid_ids = [d_id for d_id in empty_ids if d_id not in all_desk_ids]
+            invalid_ids = [d_id for d_id in occupied_ids if d_id not in all_desk_ids]
 
             if invalid_ids:
                 logger.warning(f"Invalid desk IDs: {invalid_ids}. Valid IDs are: {all_desk_ids}")
                 continue
 
-            # Calculate the desks to visit
-            occupied_ids = [d_id for d_id in all_desk_ids if d_id not in empty_ids]
-
-            logger.info(f"\n✅ Empty desks to skip: {empty_ids or 'None'}")
-            logger.info(f"✅ Desks to visit: {occupied_ids}")
+            logger.info(f"\n✅ Desks to visit (occupied): {sorted(occupied_ids)}")
             return sorted(occupied_ids)
 
     def run(self):
@@ -90,66 +188,97 @@ class DeliveryMission:
 
         desks_to_visit = [d for d in self.desks if d.id in occupied_desk_ids]
 
-        distances = {1: 0, 2: 104, 3: 238, 4: 104}
-
         logger.info(f"\n🤖 STARTING DELIVERY")
-        logger.info(f"   Position: In front of Desk 1")
+        logger.info(f"   Position: At Desk 1")
         logger.info(f"   Desks to visit: {[d.id for d in desks_to_visit]}")
 
-        input("\n⚠️  Press ENTER to start delivery...")
+        # HARDCODED DISTANCES (TESTING: 25cm between all desks for this room)
+        distances = {
+            1: 0,    # Already at Desk 1
+            2: 25,   # Desk 1 → Desk 2 (25 cm for testing)
+            3: 25,   # Desk 2 → Desk 3 (25 cm for testing)
+            4: 25    # Desk 3 → Desk 4 (25 cm for testing)
+        }
 
-        current_desk_pos = 1
+        # Calculate total forward distance for return trip
+        total_forward_distance = 0
+        for i in range(len(desks_to_visit) - 1):
+            current_desk = desks_to_visit[i].id
+            next_desk = desks_to_visit[i + 1].id
+            # Sum distances between consecutive desks
+            for desk_id in range(current_desk, next_desk):
+                if desk_id + 1 in distances:
+                    total_forward_distance += distances[desk_id + 1]
+
+        # Visit each desk
         for i, desk in enumerate(desks_to_visit):
             logger.info(f"\n{'='*60}")
-            logger.info(f"VISITING DESK {desk.id} (#{i+1}/{len(desks_to_visit)})")
+            logger.info(f"AT DESK {desk.id} (#{i+1}/{len(desks_to_visit)})")
             logger.info(f"{'='*60}")
 
-            distance_to_drive = 0
-            if desk.id > current_desk_pos:
-                distance_to_drive = sum(distances.get(j, 0) for j in range(current_desk_pos + 1, desk.id + 1))
+            # Prompt to press ENTER
+            input(f"\n⚠️  Press ENTER at Desk {desk.id}...")
 
-
-            if distance_to_drive > 1.0:
-                logger.info(f"\n📏 Driving from {current_desk_pos} to {desk.id}")
-                logger.info(f"🚗 Driving {distance_to_drive} cm...")
-                self.robot.drive.drive_cm(distance_to_drive)
-                logger.info(f"✅ Arrived at Desk {desk.id} position")
-            else:
-                logger.info(f"\n✅ Already at Desk {desk.id} position")
-
-            current_desk_pos = desk.id
-
+            # Turn LEFT 90° to face desk (using encoder with IMU verification)
             logger.info(f"\n↰  Turning LEFT 90° to face Desk {desk.id}...")
-            self.robot.drive.turn_degrees(-90)
-            time.sleep(0.5)
+            self.turn_with_imu_verification(-90, "left")
 
-            logger.info(f"\n📍 AT DESK {desk.id}")
-            input(f"   📄 Press ENTER when paper is collected from Desk {desk.id}...")
+            # Wait 3 seconds
+            logger.info(f"\n⏱️  Waiting 3 seconds at Desk {desk.id}...")
+            time.sleep(3.0)
 
-            self.delivered_count += 1
+            # Turn LEFT 345° back to straight
+            logger.info(f"\n↰  Turning LEFT 345° back to straight...")
+            self.turn_with_imu_verification(-345, "left")
 
+            # If not last desk, drive forward to next desk
             if i < len(desks_to_visit) - 1:
-                logger.info(f"\n↱  Turning RIGHT 90° back to straight...")
-                self.robot.drive.turn_degrees(90)
-                time.sleep(0.5)
-                logger.info(f"   Ready to drive to next desk")
+                next_desk = desks_to_visit[i + 1]
+                # Calculate distance to next desk
+                distance_to_next = 0
+                for desk_id in range(desk.id, next_desk.id):
+                    if desk_id + 1 in distances:
+                        distance_to_next += distances[desk_id + 1]
+                
+                logger.info(f"\n🚗 Driving {distance_to_next} cm to Desk {next_desk.id}...")
+                if self.simulate:
+                    logger.info(f"   [SIMULATED] robot.drive.drive_cm({distance_to_next})")
+                else:
+                    self.robot.drive.drive_cm(distance_to_next)
+                logger.info(f"✅ Arrived at Desk {next_desk.id} position")
 
-            if desk.id == 2 and i < len(desks_to_visit) - 1:
-                next_desk = desks_to_visit[i+1]
-                if next_desk.id > 2:
-                    logger.info(f"\n{'='*60}")
-                    logger.info(f"🔄 180° TURN AT DESK 2")
-                    logger.info(f"\n↻  Turning 180° to reverse direction...")
-                    self.robot.drive.turn_degrees(180)
-                    time.sleep(0.5)
-                    logger.info(f"✅ 180° turn complete")
+        # At last desk - final action
+        logger.info("\n" + "=" * 60)
+        logger.info("FINAL ACTION AT LAST DESK")
+        logger.info("=" * 60)
+        input(f"\n⚠️  Press ENTER for final action at Desk {desks_to_visit[-1].id}...")
+
+        # Turn 230° (using left turn since right turns don't work)
+        logger.info(f"\n↻  Turning LEFT 230°...")
+        self.turn_with_imu_verification(-230, "left 230°")
+
+        # Drive forward 100cm
+        logger.info(f"\n🚗 Driving forward 100 cm...")
+        if self.simulate:
+            logger.info(f"   [SIMULATED] robot.drive.drive_cm(100)")
+        else:
+            self.robot.drive.drive_cm(100)  # Positive = forward
+        logger.info(f"✅ Drove forward 100 cm")
+        
+        # Turn 230° again
+        logger.info(f"\n↻  Turning LEFT 230° again...")
+        self.turn_with_imu_verification(-230, "left 230°")
+        logger.info(f"✅ Final turn complete")
 
         logger.info("\n" + "=" * 60)
         logger.info("✅ DELIVERY MISSION COMPLETE!")
         logger.info("=" * 60)
         logger.info(f"\n📊 STATISTICS:")
-        logger.info(f"   Desks visited: {self.delivered_count}")
-        logger.info(f"   Final position: At Desk {desks_to_visit[-1].id if desks_to_visit else 'N/A'}")
+        logger.info(f"   Total desks: {len(self.desks)}")
+        logger.info(f"   Occupied desks: {len(occupied_desk_ids)}")
+        logger.info(f"   Desks visited: {len(desks_to_visit)}")
+        logger.info(f"   Total forward distance: {total_forward_distance} cm")
+        logger.info(f"   Final forward movement: 100 cm")
 
 
 def main():
