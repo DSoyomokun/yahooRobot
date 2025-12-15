@@ -4,10 +4,10 @@ Delivery Mission - Story 3.1 (Combined)
 
 Delivers papers to specified desks using the traversal pattern.
 
-- Prompts user to enter which desks are occupied.
-- Navigates to ONLY those desks.
-- At each desk, it turns left, pauses, and turns right.
-- Skips empty desks to save time.
+- Prompts user to enter which desks are EMPTY.
+- Navigates to all OTHER desks (the occupied ones).
+- At each occupied desk, it turns left, waits for user confirmation, and turns right.
+- Skips the specified empty desks to save time.
 """
 
 import sys
@@ -39,72 +39,63 @@ class DeliveryMission:
         self.delivered_count = 0
         self.simulate = simulate
 
-    def get_occupied_desks(self):
+    def get_desks_to_visit(self):
         """
-        Get list of occupied desk IDs from user input.
+        Asks user for EMPTY desks and returns a list of desks to visit.
         """
         logger.info("=" * 60)
         logger.info("📍 DESK OCCUPANCY CHECK")
         logger.info("=" * 60)
-        logger.info("\nEnter which desks the robot should visit.")
-        logger.info("Example: 1,3,4 (visits Desks 1, 3, and 4)")
+        logger.info("\nEnter which desks are EMPTY and should be skipped.")
+        logger.info("Example: 2 (skips Desk 2, visits 1, 3, and 4)")
+        logger.info("Press ENTER if no desks are empty.")
 
         while True:
-            response = input("\nEnter desks to visit (comma-separated, e.g., 1,3,4): ").strip()
-
-            if not response:
-                logger.warning("No desks entered. Please provide a list of desks to visit.")
-                continue
-
-            try:
-                occupied_ids = [int(x.strip()) for x in response.split(',')]
-                valid_ids = [d.id for d in self.desks]
-                invalid = [d_id for d_id in occupied_ids if d_id not in valid_ids]
-
-                if invalid:
-                    logger.warning(f"Invalid desk IDs: {invalid}. Valid IDs are: {valid_ids}")
+            response = input("\nEnter EMPTY desks to skip (comma-separated, e.g., 2,4): ").strip()
+            
+            empty_ids = []
+            if response:
+                try:
+                    empty_ids = [int(x.strip()) for x in response.split(',')]
+                except ValueError:
+                    logger.warning("Invalid format. Please use comma-separated numbers (e.g., 2,4).")
                     continue
 
-                logger.info(f"\n✅ Desks to visit: {occupied_ids}")
-                return sorted(occupied_ids)
+            all_desk_ids = [d.id for d in self.desks]
+            invalid_ids = [d_id for d_id in empty_ids if d_id not in all_desk_ids]
 
-            except ValueError:
-                logger.warning("Invalid format. Please use comma-separated numbers (e.g., 1,3,4).")
+            if invalid_ids:
+                logger.warning(f"Invalid desk IDs: {invalid_ids}. Valid IDs are: {all_desk_ids}")
                 continue
 
-    def run(self, pause_after_each=False):
+            # Calculate the desks to visit
+            occupied_ids = [d_id for d_id in all_desk_ids if d_id not in empty_ids]
+            
+            logger.info(f"\n✅ Empty desks to skip: {empty_ids or 'None'}")
+            logger.info(f"✅ Desks to visit: {occupied_ids}")
+            return sorted(occupied_ids)
+
+    def run(self):
         """
         Execute the delivery mission.
         """
         logger.info("=" * 60)
-        logger.info("📦 DELIVERY MISSION (TRAVERSAL-STYLE)")
+        logger.info("📦 DELIVERY MISSION")
         logger.info("=" * 60)
 
-        # Get the list of desks to visit from the user
-        occupied_desk_ids = self.get_occupied_desks()
+        occupied_desk_ids = self.get_desks_to_visit()
         if not occupied_desk_ids:
-            logger.info("\nNo desks selected. Mission aborted.")
+            logger.info("\nNo desks to visit. Mission aborted.")
             return
 
         desks_to_visit = [d for d in self.desks if d.id in occupied_desk_ids]
 
-        # HARDCODED DISTANCES (from row traversal script)
-        distances = {
-            1: 0,
-            2: 104,
-            3: 238,
-            4: 104
-        }
+        distances = {1: 0, 2: 104, 3: 238, 4: 104}
 
         logger.info(f"\n🤖 STARTING DELIVERY")
         logger.info(f"   Position: In front of Desk 1")
         logger.info(f"   Desks to visit: {[d.id for d in desks_to_visit]}")
-        logger.info(f"\n🔄 MOVEMENT PATTERN:")
-        logger.info(f"   1. Turn LEFT 90° to face desk")
-        logger.info(f"   2. Pause for delivery")
-        logger.info(f"   3. Turn RIGHT 90° back to straight")
-        logger.info(f"   4. Drive to next desk position")
-
+        
         input("\n⚠️  Press ENTER to start delivery...")
 
         current_desk_pos = 1
@@ -113,12 +104,10 @@ class DeliveryMission:
             logger.info(f"VISITING DESK {desk.id} (#{i+1}/{len(desks_to_visit)})")
             logger.info(f"{'='*60}")
 
-            # Drive to the desk's position
             distance_to_drive = 0
             if desk.id > current_desk_pos:
-                # This is a simplified drive model assuming sequential travel
-                # A more robust solution would calculate path segments
-                distance_to_drive = distances.get(desk.id, 0)
+                distance_to_drive = sum(distances.get(j, 0) for j in range(current_desk_pos + 1, desk.id + 1))
+
 
             if distance_to_drive > 1.0:
                 logger.info(f"\n📏 Driving from {current_desk_pos} to {desk.id}")
@@ -128,23 +117,15 @@ class DeliveryMission:
             else:
                 logger.info(f"\n✅ Already at Desk {desk.id} position")
 
-            # Update current position
             current_desk_pos = desk.id
 
-            # Perform the traversal-style interaction
             logger.info(f"\n↰  Turning LEFT 90° to face Desk {desk.id}...")
             self.robot.drive.turn_degrees(-90)
             time.sleep(0.5)
 
             logger.info(f"\n📍 AT DESK {desk.id}")
-            logger.info(f"   Facing the desk - ready for delivery.")
-
-            if pause_after_each:
-                input(f"\n📄 Press ENTER after delivery at Desk {desk.id}...")
-            else:
-                logger.info(f"   📄 Pausing for 2 seconds for delivery...")
-                time.sleep(2.0)
-
+            input(f"   📄 Press ENTER when paper is collected from Desk {desk.id}...")
+            
             self.delivered_count += 1
 
             if i < len(desks_to_visit) - 1:
@@ -153,18 +134,15 @@ class DeliveryMission:
                 time.sleep(0.5)
                 logger.info(f"   Ready to drive to next desk")
 
-            # Handle the 180-degree turn after Desk 2 if needed
             if desk.id == 2 and i < len(desks_to_visit) - 1:
                 next_desk = desks_to_visit[i+1]
-                if next_desk.id > 2: # Only turn if the next desk is on the other side
+                if next_desk.id > 2:
                     logger.info(f"\n{'='*60}")
                     logger.info(f"🔄 180° TURN AT DESK 2")
-                    logger.info(f"{'='*60}")
                     logger.info(f"\n↻  Turning 180° to reverse direction...")
                     self.robot.drive.turn_degrees(180)
                     time.sleep(0.5)
                     logger.info(f"✅ 180° turn complete")
-                    current_desk_pos = 0 # Reset position logic for return trip if needed
 
         logger.info("\n" + "=" * 60)
         logger.info("✅ DELIVERY MISSION COMPLETE!")
@@ -179,21 +157,8 @@ def main():
     import argparse
     parser = argparse.ArgumentParser(
         description='Execute a delivery mission to specified desks.',
-        formatter_class=argparse.RawDescriptionHelpFormatter,
-        epilog="""
-Examples:
-# Run the mission, will be prompted for desks
-python3 scripts/run_delivery_mission.py
-
-# Run with a manual pause after each delivery
-python3 scripts/run_delivery_mission.py --pause
-
-# Run in simulation mode
-python3 scripts/run_delivery_mission.py --simulate
-"""
+        formatter_class=argparse.RawDescriptionHelpFormatter
     )
-    parser.add_argument('--pause', action='store_true',
-                        help='Pause and wait for ENTER after each desk delivery.')
     parser.add_argument('--simulate', action='store_true',
                         help='Run in simulation mode (no hardware required).')
     parser.add_argument('--debug', action='store_true',
@@ -214,7 +179,7 @@ python3 scripts/run_delivery_mission.py --simulate
             logger.info(f"✅ Config loaded: {len(config.desks)} desks")
 
             mission = DeliveryMission(robot, config, simulate=args.simulate)
-            mission.run(pause_after_each=args.pause)
+            mission.run()
 
     except KeyboardInterrupt:
         logger.warning("\n\nMission interrupted by user.")
