@@ -575,8 +575,7 @@ python3 scripts/run_delivery_mission.py --manual
 2. Navigate to Desk 1 → turn left → deliver → wait for ENTER
 3. Navigate to Desk 3 → turn left → deliver → wait for ENTER
 4. Navigate to Desk 4 → turn left → deliver → wait for ENTER
-5. Return to origin
-6. Show delivery summary
+5. Show delivery summary
 
 **Output:**
 ```
@@ -625,15 +624,21 @@ Scanned papers saved to: collected_papers/
 ---
 
 #### 6. Obstacle Avoidance ✅
-**Integrated into all navigation scripts**
+**Script:** `main.py` (ODectection demonstration)
 
 **Capabilities:**
 - Continuous distance monitoring during movement
-- Immediate stop when obstacle detected (< 20cm)
-- LED feedback (red = obstacle detected)
-- Logs obstacle events
+- Automatic obstacle avoidance with path recovery
+- Goes around obstacles and continues to destination
+- IMU-based heading correction after avoidance
+- Logs obstacle events with distance
 
-**Implementation:** Runs in background during all movement commands
+**Demo:**
+```bash
+python3 main.py
+```
+
+**Note:** Obstacle avoidance is demonstrated in main.py. Mission scripts (delivery/collection) use simplified direct navigation for reliability
 
 ---
 
